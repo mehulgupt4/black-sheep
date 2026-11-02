@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Black Sheep</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Google+Sans:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+</head>
+<body>
+  <!-- Title Screen in the Sky -->
+  <div id="title-screen">
+    <div class="sky-title-box">
+      <h1 class="sky-title">BLACK SHEEP</h1>
+      <div class="title-buttons">
+        <button id="start-btn" onclick="startGame()">Start</button>
+        <button id="how-to-btn" onclick="toggleHowTo(true)">How To</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- How-To Play Screen -->
+  <div id="howto-modal" class="hidden">
+    <div class="howto-box">
+      <h2 class="serif-num">HOW TO PLAY</h2>
+      <p class="howto-text">
+        You are a Wolf In Sheep Skin. Sheeps within the outer ring follow you but even one entering the inner ring blows your cover. Gather the entire meadow without alerting the dog.
+      </p>
+      <button id="howto-close-btn" onclick="toggleHowTo(false)">Back</button>
+    </div>
+  </div>
+
+  <!-- In-Game HUD: Top Center -->
+  <div id="ui" class="hidden">
+    <span id="max-followed-count" class="serif-num">0</span>
+  </div>
+
+  <!-- Screen-Center "COVER BLOWN" Flash Banner (No Glow) -->
+  <div id="cover-blown-banner" class="hidden serif-num">COVER BLOWN</div>
+
+  <div id="damage-overlay"></div>
+
+  <!-- End Game Screen -->
+  <div id="game-modal" class="hidden">
+    <div class="modal-box">
+      <div id="end-score" class="serif-num">0</div>
+      <div class="modal-buttons">
+        <button id="again-btn" onclick="restartGame()">Again</button>
+        <button id="title-btn" onclick="goToTitleScreen()">Title Screen</button>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="game-canvas"></canvas>
+  <script src="main.js"></script>
+</body>
+</html>
