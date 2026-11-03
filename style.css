@@ -19,7 +19,6 @@ body, html {
   transition: filter 0.8s ease;
 }
 
-/* Grayscale background when game over modal is active */
 #game-canvas.grayscale-bg {
   filter: grayscale(100%) contrast(1.1);
 }
@@ -166,7 +165,7 @@ body, html {
   opacity: 0.6;
 }
 
-/* In-Game HUD */
+/* In-Game HUD: Top Center Dual Counter */
 #ui {
   position: absolute;
   top: 28px;
@@ -175,6 +174,9 @@ body, html {
   pointer-events: none;
   user-select: none;
   z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 14px;
   transition: opacity 0.3s ease;
 }
 
@@ -183,12 +185,73 @@ body, html {
   opacity: 0;
 }
 
-#max-followed-count {
+/* Real-time followers: pure white */
+#current-count {
   color: #ffffff;
   font-size: 2.8rem;
   font-weight: 700;
   line-height: 1;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
+}
+
+.hud-divider {
+  color: #475569;
+  font-size: 2.2rem;
+  font-weight: 400;
+  line-height: 1;
+}
+
+/* Highscore: primary red */
+#max-followed-count {
+  color: #ef4444;
+  font-size: 2.8rem;
+  font-weight: 700;
+  line-height: 1;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
+}
+
+/* 3 2 1 Countdown in Center of Screen */
+#countdown-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #ffffff;
+  font-size: 5rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-align: center;
+  pointer-events: none;
+  user-select: none;
+  z-index: 75;
+  line-height: 1;
+}
+
+#countdown-overlay.hidden {
+  display: none !important;
+}
+
+.countdown-tick {
+  animation: countdownPulse 0.85s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+}
+
+@keyframes countdownPulse {
+  0% {
+    transform: translate(-50%, -50%) scale(1.6);
+    opacity: 0;
+  }
+  20% {
+    transform: translate(-50%, -50%) scale(1.0);
+    opacity: 1;
+  }
+  80% {
+    transform: translate(-50%, -50%) scale(0.98);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 0;
+  }
 }
 
 /* Screen-Center "COVER BLOWN" */
@@ -220,18 +283,10 @@ body, html {
 }
 
 @keyframes smoothFadeFlash {
-  0% {
-    opacity: 0;
-  }
-  25% {
-    opacity: 1;
-  }
-  75% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
+  0% { opacity: 0; }
+  25% { opacity: 1; }
+  75% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 /* Red blood damage overlay */
