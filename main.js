@@ -1,421 +1,1070 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+// --- Desktop Detection Check ---
+function isMobileOrTablet() {
+  const userAgentCheck = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const touchTabletCheck = (navigator.maxTouchPoints > 1) && (/Macintosh|iPad/i.test(navigator.userAgent) || window.innerWidth < 1024);
+  const smallScreenCheck = window.innerWidth < 768;
+
+  return userAgentCheck || touchTabletCheck || smallScreenCheck;
 }
 
-body, html {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background-color: #000000;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Google Sans", "Inter", sans-serif;
-}
+const desktopOnlyScreen = document.getElementById('desktop-only-screen');
 
-#game-canvas {
-  width: 100vw;
-  height: 100vh;
-  display: block;
-  transition: filter 0.8s ease;
-}
-
-#game-canvas.grayscale-bg {
-  filter: grayscale(100%) contrast(1.1);
-}
-
-.serif-num {
-  font-family: 'Cinzel', serif;
-}
-
-/* Title Screen Overlay in the Sky */
-#title-screen {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  pointer-events: auto;
-  z-index: 80;
-  transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-#title-screen.fade-out {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.sky-title-box {
-  text-align: center;
-  color: #ffffff;
-  user-select: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 18px;
-}
-
-.sky-title {
-  font-family: 'Cinzel', serif;
-  font-size: 2.6rem;
-  font-weight: 700;
-  letter-spacing: 0.28em;
-  margin-right: -0.28em;
-  color: #f8fafc;
-  text-shadow: 0 0 16px rgba(255, 255, 255, 0.35), 0 0 40px rgba(160, 200, 255, 0.15);
-}
-
-.title-buttons {
-  display: flex;
-  gap: 24px;
-  align-items: center;
-  justify-content: center;
-}
-
-#start-btn, #how-to-btn {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Google Sans", "Inter", sans-serif;
-  background: transparent;
-  color: #e2e8f0;
-  border: none;
-  outline: none;
-  padding: 8px 16px;
-  font-size: 0.95rem;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-  opacity: 0.75;
-  transition: opacity 0.2s ease, transform 0.2s ease, color 0.2s ease;
-}
-
-#start-btn:hover, #how-to-btn:hover {
-  opacity: 1;
-  color: #ffffff;
-  transform: translateY(-1px);
-  text-shadow: 0 0 12px rgba(255, 255, 255, 0.6);
-}
-
-#start-btn:active, #how-to-btn:active {
-  transform: translateY(1px);
-  opacity: 0.65;
-}
-
-/* How-To Modal */
-#howto-modal {
-  position: absolute;
-  inset: 0;
-  background: #000000;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 90;
-}
-
-#howto-modal.hidden {
-  display: none !important;
-}
-
-.howto-box {
-  background: transparent;
-  border: none;
-  max-width: 440px;
-  text-align: center;
-  color: #e2e8f0;
-  padding: 32px 24px;
-}
-
-.howto-box h2 {
-  font-size: 1.6rem;
-  letter-spacing: 0.22em;
-  margin-bottom: 24px;
-  color: #ffffff;
-}
-
-.howto-text {
-  text-align: justify;
-  text-justify: inter-word;
-  text-align-last: center;
-  line-height: 1.25;
-  max-width: 380px;
-  margin: 0 auto 32px auto;
-  color: #94a3b8;
-  font-size: 1rem;
-  letter-spacing: 0.01em;
-}
-
-#howto-close-btn {
-  background: transparent;
-  border: none;
-  color: #94a3b8;
-  font-size: 0.95rem;
-  font-weight: 500;
-  letter-spacing: 0.1em;
-  cursor: pointer;
-  opacity: 0.75;
-  padding: 8px 16px;
-  transition: opacity 0.2s ease, transform 0.2s ease, color 0.2s ease;
-}
-
-#howto-close-btn:hover {
-  opacity: 1;
-  color: #ffffff;
-  transform: translateY(-1px);
-}
-
-#howto-close-btn:active {
-  transform: translateY(1px);
-  opacity: 0.6;
-}
-
-/* In-Game HUD: Top Center Dual Counter */
-#ui {
-  position: absolute;
-  top: 28px;
-  left: 50%;
-  transform: translateX(-50%);
-  pointer-events: none;
-  user-select: none;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  transition: opacity 0.3s ease;
-}
-
-#ui.hidden {
-  display: none !important;
-  opacity: 0;
-}
-
-/* Real-time followers: pure white */
-#current-count {
-  color: #ffffff;
-  font-size: 2.8rem;
-  font-weight: 700;
-  line-height: 1;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
-}
-
-.hud-divider {
-  color: #475569;
-  font-size: 2.2rem;
-  font-weight: 400;
-  line-height: 1;
-}
-
-/* Highscore: primary red */
-#max-followed-count {
-  color: #ef4444;
-  font-size: 2.8rem;
-  font-weight: 700;
-  line-height: 1;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
-}
-
-/* 3 2 1 Countdown in Center of Screen */
-#countdown-overlay {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: #ffffff;
-  font-size: 5rem;
-  font-weight: 900;
-  letter-spacing: 0.1em;
-  text-align: center;
-  pointer-events: none;
-  user-select: none;
-  z-index: 75;
-  line-height: 1;
-}
-
-#countdown-overlay.hidden {
-  display: none !important;
-}
-
-.countdown-tick {
-  animation: countdownPulse 0.85s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
-}
-
-@keyframes countdownPulse {
-  0% {
-    transform: translate(-50%, -50%) scale(1.6);
-    opacity: 0;
+if (isMobileOrTablet()) {
+  if (desktopOnlyScreen) {
+    desktopOnlyScreen.classList.remove('hidden');
   }
-  20% {
-    transform: translate(-50%, -50%) scale(1.0);
-    opacity: 1;
+} else {
+  // --- Audio Sources & Manager ---
+  const SOUNDS = {
+    sheepScream: new Audio('assets/sounds/sheep_scream.mp3'),
+    dogBark: new Audio('assets/sounds/dog_bark.mp3'),
+    dogBite: new Audio('assets/sounds/dog_bite.mp3'),
+  };
+
+  function playSound(audio) {
+    if (!audio) return;
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
   }
-  80% {
-    transform: translate(-50%, -50%) scale(0.98);
-    opacity: 0.9;
+
+  function stopSound(audio) {
+    if (!audio) return;
+    audio.pause();
+    audio.currentTime = 0;
   }
-  100% {
-    transform: translate(-50%, -50%) scale(0.8);
-    opacity: 0;
+
+  // --- Scene, Camera, Renderer ---
+  const canvas = document.getElementById('game-canvas');
+  const scene = new THREE.Scene();
+
+  scene.background = new THREE.Color(0x020308);
+  scene.fog = new THREE.FogExp2(0x020308, 0.008);
+
+  const camera = new THREE.PerspectiveCamera(
+    60,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+  );
+
+  const CAM_OFFSET_Y = 12;
+  const CAM_OFFSET_Z = 16;
+  const CAM_LOOK_OFFSET_Y = 1;
+
+  const START_CAM_Y = 70;
+  camera.position.set(0, START_CAM_Y, CAM_OFFSET_Z);
+  camera.lookAt(0, START_CAM_Y - (CAM_OFFSET_Y - CAM_LOOK_OFFSET_Y), 0);
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  // --- Stars ---
+  const starGeometry = new THREE.BufferGeometry();
+  const starCount = 1400;
+  const starPositions = new Float32Array(starCount * 3);
+
+  for (let i = 0; i < starCount * 3; i += 3) {
+    starPositions[i] = (Math.random() - 0.5) * 500;
+    starPositions[i + 1] = 45 + Math.random() * 150;
+    starPositions[i + 2] = (Math.random() - 0.5) * 500;
   }
-}
 
-/* Screen-Center "COVER BLOWN" */
-#cover-blown-banner {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: #ff0000;
-  font-size: 3.2rem;
-  font-weight: 900;
-  letter-spacing: 0.28em;
-  text-align: center;
-  text-shadow: none;
-  pointer-events: none;
-  user-select: none;
-  z-index: 70;
-  white-space: nowrap;
-  opacity: 0;
-}
+  starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+  const starMaterial = new THREE.PointsMaterial({
+    color: 0xffffff,
+    size: 1.05,
+    transparent: true,
+    opacity: 0.9,
+  });
+  const stars = new THREE.Points(starGeometry, starMaterial);
+  scene.add(stars);
 
-#cover-blown-banner.hidden {
-  display: none !important;
-}
+  // --- Ground ---
+  const FIELD_SIZE = 160;
+  const FIELD_BOUNDARY = FIELD_SIZE / 2 - 3;
+  const BOUNDARY_MARGIN = 8;
 
-#cover-blown-banner.flash-center {
-  display: block;
-  animation: smoothFadeFlash 1.1s forwards ease-in-out;
-}
+  const textureLoader = new THREE.TextureLoader();
+  const grassTexture = textureLoader.load('assets/grass.jpg');
+  grassTexture.wrapS = THREE.RepeatWrapping;
+  grassTexture.wrapT = THREE.RepeatWrapping;
+  grassTexture.repeat.set(32, 32);
 
-@keyframes smoothFadeFlash {
-  0% { opacity: 0; }
-  25% { opacity: 1; }
-  75% { opacity: 1; }
-  100% { opacity: 0; }
-}
+  const groundGeo = new THREE.PlaneGeometry(FIELD_SIZE, FIELD_SIZE);
+  const groundMat = new THREE.MeshStandardMaterial({
+    map: grassTexture,
+    roughness: 0.85,
+    metalness: 0.1,
+  });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  scene.add(ground);
 
-/* Red blood damage overlay */
-#damage-overlay {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(circle, rgba(239, 68, 68, 0) 40%, rgba(185, 28, 28, 0.85) 100%);
-  opacity: 0;
-  transition: opacity 0.15s ease-out;
-  z-index: 50;
-}
+  // --- Lighting ---
+  const nightAmbient = new THREE.AmbientLight(0x0a101d, 0.08);
+  scene.add(nightAmbient);
 
-#damage-overlay.active {
-  opacity: 1;
-  animation: bitePulse 0.25s infinite alternate ease-in-out;
-}
+  const centerTarget = new THREE.Object3D();
+  centerTarget.position.set(0, 0, 0);
+  scene.add(centerTarget);
 
-@keyframes bitePulse {
-  0% { transform: scale(1); filter: brightness(1); }
-  100% { transform: scale(1.04); filter: brightness(1.4); }
-}
+  const overheadSpotlight = new THREE.SpotLight(
+    0xfff5e6,
+    3.4,
+    130,
+    Math.PI / 5.2,
+    0.35,
+    1.2
+  );
+  overheadSpotlight.position.set(0, 76, 0);
+  overheadSpotlight.target = centerTarget;
+  overheadSpotlight.castShadow = true;
+  overheadSpotlight.shadow.mapSize.width = 2048;
+  overheadSpotlight.shadow.mapSize.height = 2048;
+  overheadSpotlight.shadow.camera.near = 10;
+  overheadSpotlight.shadow.camera.far = 130;
+  overheadSpotlight.shadow.bias = -0.0005;
+  scene.add(overheadSpotlight);
 
-/* End Game Screen */
-#game-modal {
-  position: absolute;
-  inset: 0;
-  background: rgba(2, 3, 8, 0.75);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 100;
-}
+  // --- Game Rules & Radii ---
+  const FOLLOW_RADIUS = 13.0;
+  const BLOWN_RADIUS = 2.4;
+  const SHEEP_COUNT = 100;
+  const SHEEP_SEPARATION_RADIUS = 2.4;
 
-#game-modal.hidden {
-  display: none !important;
-}
+  let gameState = 'start_screen';
 
-.modal-box {
-  background: transparent;
-  border: none;
-  padding: 0;
-  text-align: center;
-  color: #ffffff;
-  box-shadow: none;
-}
+  let currentCameraY = START_CAM_Y;
+  const TARGET_CAMERA_Y = CAM_OFFSET_Y;
+  let descentProgress = 0;
+  const descentDuration = 1.8;
 
-#end-score {
-  font-size: 6rem;
-  font-weight: 900;
-  color: #ffffff;
-  line-height: 1;
-  margin-bottom: 28px;
-  letter-spacing: 0.05em;
-  text-shadow: none;
-}
+  // Countdown timing states
+  let countdownSeconds = 3;
+  let countdownTimer = 0;
 
-.modal-buttons {
-  display: flex;
-  gap: 36px;
-  justify-content: center;
-  align-items: center;
-}
+  let cutsceneTimer = 0;
+  let detectedSheep = null;
+  let camLookTarget = new THREE.Vector3();
+  let dogChargeStart = new THREE.Vector3();
+  let dogSpeed = 20.0;
+  let povLookDirection = new THREE.Vector3();
 
-.modal-buttons button {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Google Sans", "Inter", sans-serif;
-  background: transparent;
-  border: none;
-  outline: none;
-  font-weight: 500;
-  font-size: 1.05rem;
-  letter-spacing: 0.1em;
-  cursor: pointer;
-  padding: 8px 12px;
-  color: #94a3b8;
-  opacity: 0.75;
-  transition: opacity 0.2s ease, transform 0.2s ease, color 0.2s ease, text-shadow 0.2s ease;
-}
+  let maxFollowed = parseInt(localStorage.getItem('black_sheep_max_followed') || '0', 10);
 
-.modal-buttons button:hover {
-  opacity: 1;
-  color: #f8fafc;
-  text-shadow: 0 0 16px rgba(255, 255, 255, 0.5);
-  transform: translateY(-2px);
-}
+  function createRadiusRing(radius, color = 0xffffff, opacity = 0.25) {
+    const points = [];
+    const segments = 64;
+    for (let i = 0; i <= segments; i++) {
+      const theta = (i / segments) * Math.PI * 2;
+      points.push(new THREE.Vector3(Math.cos(theta) * radius, 0.04, Math.sin(theta) * radius));
+    }
+    const ringGeo = new THREE.BufferGeometry().setFromPoints(points);
+    const ringMat = new THREE.LineBasicMaterial({
+      color: color,
+      transparent: true,
+      opacity: opacity,
+    });
+    return new THREE.Line(ringGeo, ringMat);
+  }
 
-.modal-buttons button:active {
-  transform: translateY(1px);
-  opacity: 0.6;
-}
+  function createFallbackMesh(color) {
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 1, 1.5),
+      new THREE.MeshStandardMaterial({ color })
+    );
+    mesh.castShadow = true;
+    return mesh;
+  }
 
-/* Desktop Only Screen Overlay */
-#desktop-only-screen {
-  position: fixed;
-  inset: 0;
-  background-color: #000000;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 99999;
-  padding: 24px;
-}
+  // --- Player Setup ---
+  const player = {
+    mesh: new THREE.Group(),
+    speed: 11.0,
+    rotationSpeed: 12,
+  };
+  scene.add(player.mesh);
 
-#desktop-only-screen.hidden {
-  display: none !important;
-}
+  let playerVisual = createFallbackMesh(0x222222);
+  player.mesh.add(playerVisual);
 
-.desktop-only-box {
-  text-align: center;
-  color: #f8fafc;
-  max-width: 420px;
-}
+  const followRing = createRadiusRing(FOLLOW_RADIUS, 0xffffff, 0.25);
+  const dangerRing = createRadiusRing(BLOWN_RADIUS, 0xffffff, 0.25);
+  player.mesh.add(followRing);
+  player.mesh.add(dangerRing);
 
-.desktop-only-box h1 {
-  font-size: 2.2rem;
-  letter-spacing: 0.25em;
-  margin-bottom: 20px;
-  color: #ffffff;
-}
+  const gltfLoader = new THREE.GLTFLoader();
 
-.desktop-only-box p {
-  color: #cbd5e1;
-  font-size: 1.05rem;
-  line-height: 1.6;
-  margin-bottom: 8px;
-}
+  gltfLoader.load(
+    'assets/wolf.glb',
+    (gltf) => {
+      player.mesh.remove(playerVisual);
+      playerVisual = gltf.scene;
+      playerVisual.traverse((child) => {
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
+      player.mesh.add(playerVisual);
+    },
+    undefined,
+    (err) => console.warn('Could not load wolf.glb, using fallback box.', err)
+  );
 
-.desktop-only-box .subtext {
-  color: #64748b;
-  font-size: 0.9rem;
-  letter-spacing: 0.05em;
+  // --- Guard Dog Setup ---
+  const dog = {
+    mesh: new THREE.Group(),
+    visual: null,
+  };
+  dog.visual = createFallbackMesh(0x8B4513);
+  dog.mesh.add(dog.visual);
+  dog.mesh.visible = false;
+  scene.add(dog.mesh);
+
+  gltfLoader.load(
+    'assets/dog.glb',
+    (gltf) => {
+      dog.mesh.remove(dog.visual);
+      dog.visual = gltf.scene;
+      dog.visual.traverse((child) => {
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
+      dog.mesh.add(dog.visual);
+    },
+    undefined,
+    (err) => console.warn('Could not load dog.glb, using fallback box.', err)
+  );
+
+  // --- Sheep Setup ---
+  const sheepList = [];
+
+  class Sheep {
+    constructor(baseModel, index) {
+      this.index = index;
+      this.mesh = new THREE.Group();
+      if (baseModel) {
+        this.mesh.add(baseModel.clone());
+      } else {
+        this.mesh.add(createFallbackMesh(0xffffff));
+      }
+
+      this.targetAngle = Math.random() * Math.PI * 2;
+      this.state = 'idle';
+      this.timer = Math.random() * 3;
+      this.moveSpeed = 2.0 + Math.random() * 0.9;
+      this.followSpeed = 3.8 + Math.random() * 1.0;
+      this.fleeSpeed = 19.0;
+      this.fleeDirection = new THREE.Vector3();
+      this.rallySpeed = 16.0 + Math.random() * 3.0;
+
+      this.fallVelocity = 0;
+
+      this.hopPhase = Math.random() * Math.PI * 2;
+      this.hopFrequency = 9;
+      this.hopHeight = 0.45;
+
+      const row = Math.floor(index / 10) + 1;
+      const col = (index % 10) - 4.5;
+      this.slotBehindOffset = new THREE.Vector2(
+        col * 1.8 + (Math.random() - 0.5) * 0.8,
+        -row * 2.2 - Math.random() * 1.2
+      );
+
+      this.povTargetPos = new THREE.Vector3();
+      this.baseAngleToWolf = 0;
+
+      this.dancePhase = Math.random() * Math.PI * 2;
+      this.danceSpeed = 12.0 + (this.index % 5) * 2.0;
+      this.danceHopPeak = 0.55 + (this.index % 4) * 0.25;
+      this.danceStyle = this.index % 3;
+
+      this.resetPosition();
+      scene.add(this.mesh);
+    }
+
+    resetPosition() {
+      this.fallVelocity = 0;
+      this.mesh.visible = true;
+
+      if (typeof this.targetAngle !== 'number' || isNaN(this.targetAngle)) {
+        this.targetAngle = Math.random() * Math.PI * 2;
+      }
+
+      let x = (Math.random() - 0.5) * (FIELD_BOUNDARY * 1.7);
+      let z = (Math.random() - 0.5) * (FIELD_BOUNDARY * 1.7);
+
+      const distToCenter = Math.hypot(x, z);
+      const minSafeDistance = FOLLOW_RADIUS + 12;
+      if (distToCenter < minSafeDistance) {
+        const pushAngle = Math.atan2(z, x) || Math.random() * Math.PI * 2;
+        x = Math.cos(pushAngle) * (minSafeDistance + Math.random() * 15);
+        z = Math.sin(pushAngle) * (minSafeDistance + Math.random() * 15);
+      }
+
+      this.mesh.position.set(x, 0, z);
+      this.state = 'idle';
+      this.mesh.position.y = 0;
+      this.mesh.rotation.set(0, this.targetAngle, 0);
+    }
+
+    getSeparationVector() {
+      const separation = new THREE.Vector2(0, 0);
+      for (let i = 0; i < sheepList.length; i++) {
+        const other = sheepList[i];
+        if (other === this || !other.mesh.visible) continue;
+
+        const diffX = this.mesh.position.x - other.mesh.position.x;
+        const diffZ = this.mesh.position.z - other.mesh.position.z;
+        const dist = Math.hypot(diffX, diffZ);
+
+        if (dist > 0 && dist < SHEEP_SEPARATION_RADIUS) {
+          const force = (SHEEP_SEPARATION_RADIUS - dist) / dist;
+          separation.x += diffX * force;
+          separation.y += diffZ * force;
+        }
+      }
+      return separation;
+    }
+
+    updateFall(delta) {
+      this.fallVelocity += 28.0 * delta;
+      this.mesh.position.y -= this.fallVelocity * delta;
+      this.mesh.rotation.x += 4.0 * delta;
+      this.mesh.rotation.z += 5.0 * delta;
+
+      if (this.mesh.position.y < -15.0) {
+        this.mesh.visible = false;
+      }
+    }
+
+    update(delta) {
+      if (this.state === 'falling') {
+        this.updateFall(delta);
+        return;
+      }
+
+      if (gameState !== 'playing' && gameState !== 'start_screen' && gameState !== 'descending' && gameState !== 'countdown') return;
+
+      const dx = player.mesh.position.x - this.mesh.position.x;
+      const dz = player.mesh.position.z - this.mesh.position.z;
+      const distToWolf = Math.hypot(dx, dz);
+
+      if (gameState === 'playing') {
+        if (distToWolf <= BLOWN_RADIUS) {
+          triggerGameOverCutscene(this);
+          return;
+        }
+
+        if (this.state !== 'following') {
+          if (distToWolf <= FOLLOW_RADIUS) {
+            this.state = 'following';
+            updateHudCounts();
+            checkVictoryCondition();
+          }
+        } else {
+          if (distToWolf > FOLLOW_RADIUS) {
+            this.state = 'moving';
+            this.timer = 3.5 + Math.random() * 3.0;
+            const scatterAngle = Math.atan2(-dx, -dz) + (Math.random() - 0.5) * 1.2;
+            this.targetAngle = scatterAngle;
+            updateHudCounts();
+          }
+        }
+      }
+
+      const separation = this.getSeparationVector();
+
+      if (this.state === 'following' && gameState === 'playing') {
+        const moveVec = new THREE.Vector2(dx, dz).normalize().addScaledVector(separation, 1.6);
+        this.targetAngle = Math.atan2(moveVec.x, moveVec.y) + Math.PI;
+
+        let diff = (this.targetAngle - this.mesh.rotation.y) % (Math.PI * 2);
+        if (diff < -Math.PI) diff += Math.PI * 2;
+        if (diff > Math.PI) diff -= Math.PI * 2;
+        this.mesh.rotation.y += diff * delta * 5.0;
+
+        const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(
+          new THREE.Vector3(0, 1, 0),
+          this.mesh.rotation.y
+        );
+        this.mesh.position.addScaledVector(forward, this.followSpeed * delta);
+
+        this.hopPhase += delta * (this.hopFrequency * 1.3);
+        this.mesh.position.y = Math.abs(Math.sin(this.hopPhase)) * (this.hopHeight * 1.2);
+      } else {
+        this.timer -= delta;
+        if (this.timer <= 0) {
+          if (this.state === 'idle') {
+            this.state = 'moving';
+            this.timer = 2 + Math.random() * 4;
+            this.targetAngle = Math.random() * Math.PI * 2;
+          } else {
+            this.state = 'idle';
+            this.timer = 1.5 + Math.random() * 3.5;
+            this.mesh.position.y = 0;
+          }
+        }
+
+        if (this.state === 'moving') {
+          const curX = this.mesh.position.x;
+          const curZ = this.mesh.position.z;
+          const maxDistance = FIELD_BOUNDARY - BOUNDARY_MARGIN;
+
+          if (Math.abs(curX) > maxDistance || Math.abs(curZ) > maxDistance) {
+            this.targetAngle = Math.atan2(-curX, -curZ) + Math.PI;
+          } else if (separation.lengthSq() > 0.01) {
+            const roamDir = new THREE.Vector2(
+              -Math.sin(this.targetAngle),
+              -Math.cos(this.targetAngle)
+            ).addScaledVector(separation, 1.2);
+            this.targetAngle = Math.atan2(-roamDir.x, -roamDir.y);
+          }
+
+          let diff = (this.targetAngle - this.mesh.rotation.y) % (Math.PI * 2);
+          if (diff < -Math.PI) diff += Math.PI * 2;
+          if (diff > Math.PI) diff -= Math.PI * 2;
+          this.mesh.rotation.y += diff * delta * 3.5;
+
+          const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(
+            new THREE.Vector3(0, 1, 0),
+            this.mesh.rotation.y
+          );
+          this.mesh.position.addScaledVector(forward, this.moveSpeed * delta);
+
+          this.hopPhase += delta * this.hopFrequency;
+          this.mesh.position.y = Math.abs(Math.sin(this.hopPhase)) * this.hopHeight;
+        } else {
+          this.mesh.position.y = THREE.MathUtils.lerp(this.mesh.position.y, 0, delta * 8);
+        }
+      }
+
+      this.mesh.position.x = THREE.MathUtils.clamp(this.mesh.position.x, -FIELD_BOUNDARY, FIELD_BOUNDARY);
+      this.mesh.position.z = THREE.MathUtils.clamp(this.mesh.position.z, -FIELD_BOUNDARY, FIELD_BOUNDARY);
+    }
+
+    faceWolf() {
+      const toWolf = new THREE.Vector3().subVectors(player.mesh.position, this.mesh.position);
+      this.targetAngle = Math.atan2(toWolf.x, toWolf.z) + Math.PI;
+      this.mesh.rotation.set(0, this.targetAngle, 0);
+    }
+
+    initFleeStraight() {
+      const dx = this.mesh.position.x - player.mesh.position.x;
+      const dz = this.mesh.position.z - player.mesh.position.z;
+      this.fleeDirection.set(dx, 0, dz).normalize();
+      this.targetAngle = Math.atan2(this.fleeDirection.x, this.fleeDirection.z) + Math.PI;
+      this.mesh.rotation.set(0, this.targetAngle, 0);
+    }
+
+    continueFleeStraight(delta) {
+      if (this.state === 'falling') {
+        this.updateFall(delta);
+        return;
+      }
+
+      this.mesh.position.addScaledVector(this.fleeDirection, this.fleeSpeed * delta);
+
+      if (Math.abs(this.mesh.position.x) > FIELD_BOUNDARY || Math.abs(this.mesh.position.z) > FIELD_BOUNDARY) {
+        this.state = 'falling';
+        return;
+      }
+
+      this.mesh.position.y = 0;
+    }
+
+    rallyBehindDog(delta, dogPos, dogForwardDir) {
+      if (this.state === 'falling') {
+        this.updateFall(delta);
+        return;
+      }
+
+      if (Math.abs(this.mesh.position.x) > FIELD_BOUNDARY || Math.abs(this.mesh.position.z) > FIELD_BOUNDARY) {
+        this.state = 'falling';
+        return;
+      }
+
+      const right = new THREE.Vector3(-dogForwardDir.z, 0, dogForwardDir.x);
+      const back = new THREE.Vector3(-dogForwardDir.x, 0, -dogForwardDir.z);
+
+      const targetPos = new THREE.Vector3()
+        .copy(dogPos)
+        .addScaledVector(right, this.slotBehindOffset.x)
+        .addScaledVector(back, Math.abs(this.slotBehindOffset.y));
+
+      const toTarget = new THREE.Vector3().subVectors(targetPos, this.mesh.position);
+      toTarget.y = 0;
+      const dist = toTarget.length();
+
+      if (dist > 0.6) {
+        toTarget.normalize();
+        this.targetAngle = Math.atan2(toTarget.x, toTarget.z) + Math.PI;
+
+        let diff = (this.targetAngle - this.mesh.rotation.y) % (Math.PI * 2);
+        if (diff < -Math.PI) diff += Math.PI * 2;
+        if (diff > Math.PI) diff -= Math.PI * 2;
+        this.mesh.rotation.y += diff * delta * 12.0;
+
+        const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(
+          new THREE.Vector3(0, 1, 0),
+          this.mesh.rotation.y
+        );
+        this.mesh.position.addScaledVector(forward, this.rallySpeed * delta);
+
+        this.hopPhase += delta * (this.hopFrequency * 1.5);
+        this.mesh.position.y = Math.abs(Math.sin(this.hopPhase)) * (this.hopHeight * 0.9);
+      } else {
+        this.mesh.position.y = THREE.MathUtils.lerp(this.mesh.position.y, 0, delta * 10);
+        const toWolf = new THREE.Vector3().subVectors(player.mesh.position, this.mesh.position);
+        this.targetAngle = Math.atan2(toWolf.x, toWolf.z) + Math.PI;
+        this.mesh.rotation.y = THREE.MathUtils.lerp(this.mesh.rotation.y, this.targetAngle, delta * 6);
+      }
+    }
+
+    setupPovWatchingPosition(wolfPos, sightDir, rightDir) {
+      if (this.state === 'falling') return;
+
+      this.state = 'pov_celebrating';
+
+      const row = Math.floor(this.index / 10);
+      const col = (this.index % 10) - 4.5;
+
+      const depthDistance = 3.6 + row * 0.8;
+      const lateralSpread = col * (0.85 + row * 0.18) + (Math.sin(this.index) * 0.3);
+
+      this.povTargetPos
+        .copy(wolfPos)
+        .addScaledVector(sightDir, depthDistance)
+        .addScaledVector(rightDir, lateralSpread);
+      this.povTargetPos.y = 0;
+
+      this.mesh.position.copy(this.povTargetPos);
+
+      const toWolf = new THREE.Vector3().subVectors(wolfPos, this.mesh.position);
+      this.baseAngleToWolf = Math.atan2(toWolf.x, toWolf.z) + Math.PI;
+      this.mesh.rotation.set(0, this.baseAngleToWolf, 0);
+    }
+
+    updatePovCelebrating(delta, time) {
+      if (this.state === 'falling' || !this.mesh.visible) return;
+
+      const t = time * this.danceSpeed + this.dancePhase;
+
+      const jump = Math.abs(Math.sin(t * 0.6)) * this.danceHopPeak;
+      this.mesh.position.y = jump;
+
+      this.mesh.position.x = this.povTargetPos.x + Math.sin(t * 0.4) * 0.18;
+      this.mesh.position.z = this.povTargetPos.z + Math.cos(t * 0.4) * 0.18;
+
+      if (this.danceStyle === 0) {
+        this.mesh.rotation.z = Math.sin(t * 0.5) * 0.35;
+        this.mesh.rotation.x = -Math.abs(Math.sin(t * 0.7)) * 0.25;
+        this.mesh.rotation.y = this.baseAngleToWolf + Math.sin(t * 0.3) * 0.3;
+      } else if (this.danceStyle === 1) {
+        this.mesh.rotation.y = this.baseAngleToWolf + t * 2.2;
+        this.mesh.rotation.z = Math.sin(t * 0.8) * 0.2;
+        this.mesh.rotation.x = Math.cos(t * 0.6) * 0.15;
+      } else {
+        this.mesh.rotation.z = Math.cos(t * 0.7) * 0.28;
+        this.mesh.rotation.x = Math.sin(t * 0.9) * 0.32;
+        this.mesh.rotation.y = this.baseAngleToWolf + Math.cos(t * 0.5) * 0.45;
+      }
+    }
+  }
+
+  // Load models & instance sheep
+  gltfLoader.load(
+    'assets/sheep.glb',
+    (gltf) => {
+      const sheepTemplate = gltf.scene;
+      sheepTemplate.traverse((child) => {
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
+
+      for (let i = 0; i < SHEEP_COUNT; i++) {
+        sheepList.push(new Sheep(sheepTemplate, i));
+      }
+      updateHudCounts();
+    },
+    undefined,
+    (err) => {
+      console.warn('Could not load sheep.glb, creating box placeholders.', err);
+      for (let i = 0; i < SHEEP_COUNT; i++) {
+        sheepList.push(new Sheep(null, i));
+      }
+      updateHudCounts();
+    }
+  );
+
+  // --- UI Elements ---
+  const titleScreenEl = document.getElementById('title-screen');
+  const howtoModalEl = document.getElementById('howto-modal');
+  const countdownOverlay = document.getElementById('countdown-overlay');
+  const inGameUiEl = document.getElementById('ui');
+  const currentCountEl = document.getElementById('current-count');
+  const maxFollowedCountEl = document.getElementById('max-followed-count');
+  const endScoreEl = document.getElementById('end-score');
+  const coverBlownBanner = document.getElementById('cover-blown-banner');
+  const modalEl = document.getElementById('game-modal');
+  const damageOverlay = document.getElementById('damage-overlay');
+
+  function updateHudCounts() {
+    const currentFollowers = sheepList.filter((s) => s.state === 'following').length;
+
+    if (currentCountEl) {
+      currentCountEl.innerText = currentFollowers;
+    }
+
+    if (currentFollowers > maxFollowed) {
+      maxFollowed = currentFollowers;
+      localStorage.setItem('black_sheep_max_followed', maxFollowed.toString());
+    }
+
+    if (maxFollowedCountEl) {
+      maxFollowedCountEl.innerText = maxFollowed;
+    }
+
+    if (endScoreEl) {
+      endScoreEl.innerText = maxFollowed;
+    }
+  }
+  updateHudCounts();
+
+  function checkVictoryCondition() {
+    const currentFollowers = sheepList.filter((s) => s.state === 'following').length;
+    if (currentFollowers === SHEEP_COUNT && gameState === 'playing') {
+      gameState = 'victory';
+      updateHudCounts();
+      document.getElementById('game-canvas').classList.add('grayscale-bg');
+      modalEl.classList.remove('hidden');
+    }
+  }
+
+  function startCountdown() {
+    gameState = 'countdown';
+    countdownSeconds = 3;
+    countdownTimer = 0;
+
+    countdownOverlay.innerText = '3';
+    countdownOverlay.className = 'serif-num countdown-tick';
+    countdownOverlay.classList.remove('hidden');
+
+    inGameUiEl.classList.remove('hidden');
+    updateHudCounts();
+  }
+
+  window.startGame = function () {
+    if (gameState !== 'start_screen') return;
+    titleScreenEl.classList.add('fade-out');
+    howtoModalEl.classList.add('hidden');
+    gameState = 'descending';
+    descentProgress = 0;
+  };
+
+  window.toggleHowTo = function (show) {
+    if (show) {
+      howtoModalEl.classList.remove('hidden');
+    } else {
+      howtoModalEl.classList.add('hidden');
+    }
+  };
+
+  function triggerGameOverCutscene(culpritSheep) {
+    if (gameState !== 'playing') return;
+    gameState = 'cutscene_zoom_sheep';
+    detectedSheep = culpritSheep;
+    detectedSheep.faceWolf();
+    cutsceneTimer = 0;
+
+    playSound(SOUNDS.sheepScream);
+
+    coverBlownBanner.className = 'serif-num flash-center';
+
+    for (let i = 0; i < sheepList.length; i++) {
+      sheepList[i].mesh.position.y = 0;
+    }
+
+    camLookTarget.copy(player.mesh.position);
+  }
+
+  function triggerDogApproachRandomOffscreen() {
+    gameState = 'cutscene_dog_approach';
+    cutsceneTimer = 0;
+
+    const spawnAngle = Math.random() * Math.PI * 2;
+    const spawnDistance = 75.0;
+    dogChargeStart.set(
+      player.mesh.position.x + Math.cos(spawnAngle) * spawnDistance,
+      0,
+      player.mesh.position.z + Math.sin(spawnAngle) * spawnDistance
+    );
+
+    dog.mesh.position.copy(dogChargeStart);
+    dog.mesh.visible = true;
+
+    for (let i = 0; i < sheepList.length; i++) {
+      if (sheepList[i] !== detectedSheep) {
+        sheepList[i].state = 'rallying';
+      }
+    }
+
+    playSound(SOUNDS.dogBark);
+  }
+
+  function triggerWolfPOV() {
+    gameState = 'cutscene_wolf_pov';
+    cutsceneTimer = 0;
+
+    inGameUiEl.classList.add('hidden');
+    coverBlownBanner.className = 'hidden serif-num';
+
+    player.mesh.visible = false;
+    povLookDirection.subVectors(dog.mesh.position, player.mesh.position).normalize();
+    povLookDirection.y = 0;
+
+    const wolfPos = player.mesh.position;
+    const rightDir = new THREE.Vector3(-povLookDirection.z, 0, povLookDirection.x);
+
+    for (let i = 0; i < sheepList.length; i++) {
+      if (sheepList[i] !== detectedSheep) {
+        sheepList[i].setupPovWatchingPosition(wolfPos, povLookDirection, rightDir);
+      }
+    }
+
+    stopSound(SOUNDS.dogBark);
+    playSound(SOUNDS.dogBite);
+
+    damageOverlay.classList.add('active');
+  }
+
+  function showGameOverModal() {
+    gameState = 'gameover';
+    stopSound(SOUNDS.dogBite);
+    damageOverlay.classList.remove('active');
+    coverBlownBanner.className = 'hidden serif-num';
+
+    document.getElementById('game-canvas').classList.add('grayscale-bg');
+
+    updateHudCounts();
+    modalEl.classList.remove('hidden');
+  }
+
+  function resetWorldEntities() {
+    stopSound(SOUNDS.sheepScream);
+    stopSound(SOUNDS.dogBark);
+    stopSound(SOUNDS.dogBite);
+
+    damageOverlay.classList.remove('active');
+    coverBlownBanner.className = 'hidden serif-num';
+    countdownOverlay.classList.add('hidden');
+    detectedSheep = null;
+    cutsceneTimer = 0;
+
+    document.getElementById('game-canvas').classList.remove('grayscale-bg');
+
+    player.mesh.visible = true;
+    player.mesh.position.set(0, 0, 0);
+    player.mesh.rotation.y = 0;
+
+    dog.mesh.visible = false;
+    dog.mesh.position.set(0, -10, 0);
+
+    for (let i = 0; i < sheepList.length; i++) {
+      sheepList[i].resetPosition();
+    }
+    updateHudCounts();
+  }
+
+  window.restartGame = function () {
+    modalEl.classList.add('hidden');
+    resetWorldEntities();
+
+    camera.position.set(0, CAM_OFFSET_Y, CAM_OFFSET_Z);
+    camera.lookAt(0, CAM_LOOK_OFFSET_Y, 0);
+
+    startCountdown();
+  };
+
+  window.goToTitleScreen = function () {
+    modalEl.classList.add('hidden');
+    inGameUiEl.classList.add('hidden');
+    resetWorldEntities();
+
+    camera.position.set(0, START_CAM_Y, CAM_OFFSET_Z);
+    camera.lookAt(0, START_CAM_Y - (CAM_OFFSET_Y - CAM_LOOK_OFFSET_Y), 0);
+
+    titleScreenEl.classList.remove('fade-out');
+    gameState = 'start_screen';
+  };
+
+  // --- Input Handling ---
+  const keys = {};
+  window.addEventListener('keydown', (e) => {
+    keys[e.key.toLowerCase()] = true;
+  });
+  window.addEventListener('keyup', (e) => {
+    keys[e.key.toLowerCase()] = false;
+  });
+
+  // --- Render Loop ---
+  const clock = new THREE.Clock();
+  let hasSheepTurned = false;
+
+  function animate() {
+    requestAnimationFrame(animate);
+
+    const delta = Math.min(clock.getDelta(), 0.1);
+
+    if (gameState === 'start_screen') {
+      camera.position.set(0, START_CAM_Y, CAM_OFFSET_Z);
+      camera.lookAt(0, START_CAM_Y - (CAM_OFFSET_Y - CAM_LOOK_OFFSET_Y), 0);
+
+      for (let i = 0; i < sheepList.length; i++) {
+        sheepList[i].update(delta);
+      }
+
+    } else if (gameState === 'descending') {
+      descentProgress += delta / descentDuration;
+      const t = Math.min(descentProgress, 1.0);
+      const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+      currentCameraY = THREE.MathUtils.lerp(START_CAM_Y, TARGET_CAMERA_Y, ease);
+      camera.position.set(player.mesh.position.x, currentCameraY, player.mesh.position.z + CAM_OFFSET_Z);
+      camera.lookAt(player.mesh.position.x, currentCameraY - (CAM_OFFSET_Y - CAM_LOOK_OFFSET_Y), player.mesh.position.z);
+
+      for (let i = 0; i < sheepList.length; i++) {
+        sheepList[i].update(delta);
+      }
+
+      if (t >= 1.0) {
+        startCountdown();
+      }
+
+    } else if (gameState === 'countdown') {
+      countdownTimer += delta;
+
+      // Pulse countdown 3 -> 2 -> 1
+      if (countdownTimer >= 1.0) {
+        countdownTimer -= 1.0;
+        countdownSeconds -= 1;
+
+        if (countdownSeconds > 0) {
+          countdownOverlay.innerText = countdownSeconds.toString();
+          // Reset CSS animation
+          countdownOverlay.classList.remove('countdown-tick');
+          void countdownOverlay.offsetWidth;
+          countdownOverlay.classList.add('countdown-tick');
+        } else {
+          countdownOverlay.classList.add('hidden');
+          gameState = 'playing';
+        }
+      }
+
+      for (let i = 0; i < sheepList.length; i++) {
+        sheepList[i].update(delta);
+      }
+
+      const normalCamPos = new THREE.Vector3(
+        player.mesh.position.x,
+        player.mesh.position.y + CAM_OFFSET_Y,
+        player.mesh.position.z + CAM_OFFSET_Z
+      );
+      camera.position.lerp(normalCamPos, delta * 4);
+      camera.lookAt(player.mesh.position.x, player.mesh.position.y + CAM_LOOK_OFFSET_Y, player.mesh.position.z);
+
+    } else if (gameState === 'playing') {
+      hasSheepTurned = false;
+
+      const moveDir = new THREE.Vector3();
+      if (keys['w'] || keys['arrowup']) moveDir.z -= 1;
+      if (keys['s'] || keys['arrowdown']) moveDir.z += 1;
+      if (keys['a'] || keys['arrowleft']) moveDir.x -= 1;
+      if (keys['d'] || keys['arrowright']) moveDir.x += 1;
+
+      if (moveDir.lengthSq() > 0) {
+        moveDir.normalize();
+
+        const targetAngle = Math.atan2(moveDir.x, moveDir.z) + Math.PI;
+        let diff = (targetAngle - player.mesh.rotation.y) % (Math.PI * 2);
+        if (diff < -Math.PI) diff += Math.PI * 2;
+        if (diff > Math.PI) diff -= Math.PI * 2;
+        player.mesh.rotation.y += diff * delta * player.rotationSpeed;
+
+        player.mesh.position.addScaledVector(moveDir, player.speed * delta);
+
+        player.mesh.position.x = THREE.MathUtils.clamp(
+          player.mesh.position.x,
+          -FIELD_BOUNDARY,
+          FIELD_BOUNDARY
+        );
+        player.mesh.position.z = THREE.MathUtils.clamp(
+          player.mesh.position.z,
+          -FIELD_BOUNDARY,
+          FIELD_BOUNDARY
+        );
+      }
+
+      for (let i = 0; i < sheepList.length; i++) {
+        sheepList[i].update(delta);
+      }
+
+      const normalCamPos = new THREE.Vector3(
+        player.mesh.position.x,
+        player.mesh.position.y + CAM_OFFSET_Y,
+        player.mesh.position.z + CAM_OFFSET_Z
+      );
+      camera.position.lerp(normalCamPos, delta * 4);
+      camera.lookAt(player.mesh.position.x, player.mesh.position.y + CAM_LOOK_OFFSET_Y, player.mesh.position.z);
+
+    } else if (gameState === 'cutscene_zoom_sheep') {
+      cutsceneTimer += delta;
+
+      const sPos = detectedSheep.mesh.position;
+
+      if (cutsceneTimer < 1.4) {
+        const closeCamPos = new THREE.Vector3(
+          sPos.x + 1.8,
+          sPos.y + 1.5,
+          sPos.z + 3.0
+        );
+        camera.position.lerp(closeCamPos, delta * 7.0);
+        camLookTarget.lerp(
+          new THREE.Vector3(sPos.x, sPos.y + 0.8, sPos.z),
+          delta * 8.0
+        );
+        camera.lookAt(camLookTarget);
+
+      } else if (cutsceneTimer < 2.8) {
+        if (!hasSheepTurned) {
+          detectedSheep.initFleeStraight();
+          hasSheepTurned = true;
+        }
+        detectedSheep.continueFleeStraight(delta);
+
+        const normalCamPos = new THREE.Vector3(
+          player.mesh.position.x,
+          player.mesh.position.y + CAM_OFFSET_Y,
+          player.mesh.position.z + CAM_OFFSET_Z
+        );
+        camera.position.lerp(normalCamPos, delta * 4.0);
+        camLookTarget.lerp(
+          new THREE.Vector3(player.mesh.position.x, player.mesh.position.y + CAM_LOOK_OFFSET_Y, player.mesh.position.z),
+          delta * 5.0
+        );
+        camera.lookAt(camLookTarget);
+
+      } else {
+        triggerDogApproachRandomOffscreen();
+      }
+
+    } else if (gameState === 'cutscene_dog_approach') {
+      cutsceneTimer += delta;
+
+      if (detectedSheep) {
+        detectedSheep.continueFleeStraight(delta);
+      }
+
+      const normalCamPos = new THREE.Vector3(
+        player.mesh.position.x,
+        player.mesh.position.y + CAM_OFFSET_Y,
+        player.mesh.position.z + CAM_OFFSET_Z
+      );
+      camera.position.lerp(normalCamPos, delta * 4);
+      camera.lookAt(player.mesh.position.x, player.mesh.position.y + CAM_LOOK_OFFSET_Y, player.mesh.position.z);
+
+      const dogPos = dog.mesh.position;
+      const wolfPos = player.mesh.position;
+
+      const toWolf = new THREE.Vector3().subVectors(wolfPos, dogPos);
+      const distToWolf = toWolf.length();
+
+      const forwardDir = toWolf.clone().normalize();
+
+      const moveAngle = Math.atan2(forwardDir.x, forwardDir.z) + Math.PI;
+      let aDiff = (moveAngle - dog.mesh.rotation.y) % (Math.PI * 2);
+      if (aDiff < -Math.PI) aDiff += Math.PI * 2;
+      if (aDiff > Math.PI) aDiff -= Math.PI * 2;
+      dog.mesh.rotation.y += aDiff * delta * 14.0;
+
+      if (distToWolf > 2.0) {
+        dog.mesh.position.addScaledVector(forwardDir, dogSpeed * delta);
+        dog.mesh.position.y = 0;
+      } else {
+        triggerWolfPOV();
+      }
+
+      for (let i = 0; i < sheepList.length; i++) {
+        if (sheepList[i] !== detectedSheep) {
+          sheepList[i].rallyBehindDog(delta, dogPos, forwardDir);
+        }
+      }
+
+    } else if (gameState === 'cutscene_wolf_pov') {
+      cutsceneTimer += delta;
+
+      if (detectedSheep) {
+        detectedSheep.continueFleeStraight(delta);
+      }
+
+      const wolfPos = player.mesh.position;
+      camera.position.set(wolfPos.x, 1.15, wolfPos.z);
+
+      const baseDogDist = 1.7;
+      const biteCycle = Math.sin(cutsceneTimer * 16.0);
+      const lungeOffset = Math.max(0, biteCycle) * 0.45;
+      const currentDist = baseDogDist - lungeOffset;
+
+      dog.mesh.position.set(
+        wolfPos.x + povLookDirection.x * currentDist,
+        0,
+        wolfPos.z + povLookDirection.z * currentDist
+      );
+
+      dog.mesh.rotation.y = Math.atan2(-povLookDirection.x, -povLookDirection.z) + Math.PI;
+      dog.mesh.rotation.z = Math.sin(cutsceneTimer * 24.0) * 0.18;
+      dog.mesh.rotation.x = -Math.abs(Math.sin(cutsceneTimer * 16.0)) * 0.22;
+
+      const recoilPitch = -Math.max(0, biteCycle) * 0.08;
+      const recoilYaw = Math.sin(cutsceneTimer * 18.0) * 0.05;
+
+      const dogHeadTarget = new THREE.Vector3(
+        dog.mesh.position.x,
+        0.85 + recoilPitch,
+        dog.mesh.position.z
+      );
+      camera.lookAt(dogHeadTarget);
+      camera.rotation.z = recoilYaw;
+
+      for (let i = 0; i < sheepList.length; i++) {
+        if (sheepList[i] !== detectedSheep) {
+          sheepList[i].updatePovCelebrating(delta, cutsceneTimer);
+        }
+      }
+
+      if (cutsceneTimer > 3.6) {
+        showGameOverModal();
+      }
+    }
+
+    renderer.render(scene, camera);
+  }
+
+  // --- Window Resize ---
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  animate();
 }
