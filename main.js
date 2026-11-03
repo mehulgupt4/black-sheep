@@ -1,3 +1,22 @@
+// --- Desktop Detection Check ---
+function isMobileOrTablet() {
+  const userAgentCheck = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const touchCheck = (navigator.maxTouchPoints > 1) && (window.innerWidth < 1024);
+  const screenWidthCheck = window.innerWidth < 800;
+
+  return userAgentCheck || touchCheck || screenWidthCheck;
+}
+
+const desktopOnlyScreen = document.getElementById('desktop-only-screen');
+
+if (isMobileOrTablet()) {
+  if (desktopOnlyScreen) {
+    desktopOnlyScreen.classList.remove('hidden');
+  }
+  // Stop initializing or rendering Three.js on mobile/tablet devices
+  throw new Error('Black Sheep is currently desktop-only.');
+}
+
 // --- Audio Sources & Manager ---
 const SOUNDS = {
   sheepScream: new Audio('assets/sounds/sheep_scream.mp3'),
