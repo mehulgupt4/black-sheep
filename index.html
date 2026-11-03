@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Black Sheep</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Google+Sans:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -34,8 +34,13 @@
     </div>
   </div>
 
-  <!-- In-Game HUD: Top Center -->
+  <!-- 3 2 1 Start Countdown Overlay -->
+  <div id="countdown-overlay" class="hidden serif-num">3</div>
+
+  <!-- In-Game HUD: Real-time Following (White) / Highscore (Red) -->
   <div id="ui" class="hidden">
+    <span id="current-count" class="serif-num">0</span>
+    <span class="hud-divider serif-num">/</span>
     <span id="max-followed-count" class="serif-num">0</span>
   </div>
 
@@ -44,17 +49,15 @@
 
   <div id="damage-overlay"></div>
 
-  
   <!-- Desktop Only Warning Screen -->
-<div id="desktop-only-screen" class="hidden">
-  <div class="desktop-only-box">
-    <h1 class="serif-num">BLACK SHEEP</h1>
-    <p>This game is designed for desktop and requires a keyboard to play.</p>
-    <p class="subtext">Please open this link on a PC or Mac.</p>
+  <div id="desktop-only-screen" class="hidden">
+    <div class="desktop-only-box">
+      <h1 class="serif-num">BLACK SHEEP</h1>
+      <p>This game is designed for desktop and requires a keyboard to play.</p>
+      <p class="subtext">Please open this link on a PC or Mac.</p>
+    </div>
   </div>
-</div>
-  
-  
+
   <!-- End Game Screen -->
   <div id="game-modal" class="hidden">
     <div class="modal-box">
