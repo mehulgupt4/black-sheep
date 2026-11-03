@@ -99,7 +99,7 @@ body, html {
   opacity: 0.65;
 }
 
-/* How-To Modal: Solid pure black background */
+/* How-To Modal */
 #howto-modal {
   position: absolute;
   inset: 0;
@@ -111,7 +111,7 @@ body, html {
 }
 
 #howto-modal.hidden {
-  display: none;
+  display: none !important;
 }
 
 .howto-box {
@@ -130,11 +130,10 @@ body, html {
   color: #ffffff;
 }
 
-/* Tight line spacing and justified on both sides to form an imaginary box */
 .howto-text {
   text-align: justify;
   text-justify: inter-word;
-  text-align-last: center; /* Centers "alerting the dog." on the final line */
+  text-align-last: center;
   line-height: 1.25;
   max-width: 380px;
   margin: 0 auto 32px auto;
@@ -167,7 +166,7 @@ body, html {
   opacity: 0.6;
 }
 
-/* In-Game HUD: Top Center */
+/* In-Game HUD */
 #ui {
   position: absolute;
   top: 28px;
@@ -192,7 +191,7 @@ body, html {
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
 }
 
-/* Screen-Center "COVER BLOWN" - Pure Red, NO Glow, Fade Flash */
+/* Screen-Center "COVER BLOWN" */
 #cover-blown-banner {
   position: absolute;
   top: 50%;
@@ -212,7 +211,7 @@ body, html {
 }
 
 #cover-blown-banner.hidden {
-  display: none;
+  display: none !important;
 }
 
 #cover-blown-banner.flash-center {
@@ -235,7 +234,7 @@ body, html {
   }
 }
 
-/* Red blood overlay during wolf POV bite sequence */
+/* Red blood damage overlay */
 #damage-overlay {
   position: absolute;
   inset: 0;
@@ -268,7 +267,7 @@ body, html {
 }
 
 #game-modal.hidden {
-  display: none;
+  display: none !important;
 }
 
 .modal-box {
