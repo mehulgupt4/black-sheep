@@ -62,10 +62,13 @@ if (isMobileOrTablet()) {
   let biteAudioStarted = false;
   let biteFadeInterval = null;
 
-  SOUNDS.dogBite.addEventListener('ended', () => {
+  function freezePOV() {
     povFrozen = true;
     damageOverlay.classList.remove('active');
-  });
+  }
+
+  // Freeze the background animation once dog bite audio completes (when audio is active)
+  SOUNDS.dogBite.addEventListener('ended', freezePOV);
 
   function playSound(audio) {
     if (!audio || isMuted) return;
@@ -171,7 +174,6 @@ if (isMobileOrTablet()) {
       return;
     }
 
-    // Rank number removed: displays Name and Score only
     container.innerHTML = board.map((entry) => {
       const isCurrent = entry.name.toLowerCase() === currentPlayerName.toLowerCase();
       return `
@@ -584,7 +586,6 @@ if (isMobileOrTablet()) {
         if (this.state !== 'following') {
           if (distToWolf <= FOLLOW_RADIUS) {
             this.state = 'following';
-            // Trimmed by 200ms (0.2s) from start
             playOverlappingSound(SOUNDS.sheepFollow, 0.2, 0.85);
             updateHudCounts();
             checkVictoryCondition();
@@ -1298,6 +1299,15 @@ if (isMobileOrTablet()) {
     } else if (gameState === 'cutscene_wolf_pov') {
       if (!povFrozen) {
         cutsceneTimer += delta;
+
+        // Fallback timer: freeze POV when audio duration ends (or ~3.6s) even if audio is muted
+        const biteDuration = (SOUNDS.dogBite && !isNaN(SOUNDS.dogBite.duration) && SOUNDS.dogBite.duration > 0)
+          ? SOUNDS.dogBite.duration
+          : 3.6;
+
+        if (cutsceneTimer >= biteDuration) {
+          freezePOV();
+        }
 
         if (detectedSheep) {
           detectedSheep.continueFleeStraight(delta);
