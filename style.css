@@ -27,6 +27,59 @@ body, html {
   font-family: 'Cinzel', serif;
 }
 
+/* Persistent Top-Right Leaderboard */
+#corner-leaderboard {
+  position: absolute;
+  top: 24px;
+  right: 28px;
+  z-index: 60;
+  pointer-events: none;
+  user-select: none;
+  background: transparent;
+  width: 190px;
+}
+
+#corner-leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.corner-leaderboard-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  opacity: 0.75;
+}
+
+.corner-leaderboard-row.current-player {
+  color: #4ade80;
+  opacity: 1;
+}
+
+.corner-leaderboard-rank {
+  opacity: 0.45;
+  width: 16px;
+  text-align: left;
+}
+
+.corner-leaderboard-name {
+  flex: 1;
+  text-align: left;
+  margin-left: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.corner-leaderboard-val {
+  font-weight: 700;
+  color: #ffffff;
+}
+
 /* Title Screen Overlay in the Sky */
 #title-screen {
   position: absolute;
@@ -71,7 +124,7 @@ body, html {
   justify-content: center;
 }
 
-#start-btn, #how-to-btn, #leaderboard-btn {
+#start-btn, #how-to-btn {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Google Sans", "Inter", sans-serif;
   background: transparent;
   color: #e2e8f0;
@@ -86,14 +139,14 @@ body, html {
   transition: opacity 0.2s ease, transform 0.2s ease, color 0.2s ease;
 }
 
-#start-btn:hover, #how-to-btn:hover, #leaderboard-btn:hover {
+#start-btn:hover, #how-to-btn:hover {
   opacity: 1;
   color: #ffffff;
   transform: translateY(-1px);
   text-shadow: 0 0 12px rgba(255, 255, 255, 0.6);
 }
 
-#start-btn:active, #how-to-btn:active, #leaderboard-btn:active {
+#start-btn:active, #how-to-btn:active {
   transform: translateY(1px);
   opacity: 0.65;
 }
@@ -174,97 +227,6 @@ body, html {
   transform: translateY(-1px);
 }
 
-/* Leaderboard Modal: Completely Transparent Background */
-#leaderboard-modal {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 90;
-}
-
-#leaderboard-modal.hidden {
-  display: none !important;
-}
-
-.leaderboard-box {
-  background: transparent;
-  border: none;
-  width: 380px;
-  max-width: 90vw;
-  text-align: center;
-  color: #e2e8f0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-}
-
-.leaderboard-box h2 {
-  font-size: 1.6rem;
-  letter-spacing: 0.22em;
-  color: #ffffff;
-}
-
-#leaderboard-list, #end-leaderboard-list {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.leaderboard-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 4px 12px;
-  font-size: 1.05rem;
-  letter-spacing: 0.08em;
-  color: #cbd5e1;
-}
-
-.leaderboard-row.current-player {
-  color: #4ade80;
-}
-
-.leaderboard-rank {
-  opacity: 0.5;
-  width: 24px;
-  text-align: left;
-}
-
-.leaderboard-name {
-  flex: 1;
-  text-align: left;
-  margin-left: 8px;
-}
-
-.leaderboard-val {
-  font-weight: 700;
-  color: #ffffff;
-}
-
-#leaderboard-close-btn {
-  background: transparent;
-  border: none;
-  color: #94a3b8;
-  font-size: 0.95rem;
-  font-weight: 500;
-  letter-spacing: 0.1em;
-  cursor: pointer;
-  padding: 8px 16px;
-  margin-top: 10px;
-  transition: opacity 0.2s ease, transform 0.2s ease, color 0.2s ease;
-}
-
-#leaderboard-close-btn:hover {
-  opacity: 1;
-  color: #ffffff;
-  transform: translateY(-1px);
-}
-
 /* How-To Modal */
 #howto-modal {
   position: absolute;
@@ -325,6 +287,11 @@ body, html {
   opacity: 1;
   color: #ffffff;
   transform: translateY(-1px);
+}
+
+#howto-close-btn:active {
+  transform: translateY(1px);
+  opacity: 0.6;
 }
 
 /* In-Game HUD: Top Center Dual Counter */
@@ -486,25 +453,13 @@ body, html {
 }
 
 #end-score {
-  font-size: 5.5rem;
+  font-size: 6rem;
   font-weight: 900;
   color: #ffffff;
   line-height: 1;
-  margin-bottom: 20px;
-  letter-spacing: 0.05em;
-}
-
-/* Transparent End Screen Leaderboard */
-#end-leaderboard-container {
-  width: 320px;
   margin-bottom: 28px;
-}
-
-#end-leaderboard-container h3 {
-  font-size: 1rem;
-  letter-spacing: 0.2em;
-  opacity: 0.6;
-  margin-bottom: 12px;
+  letter-spacing: 0.05em;
+  text-shadow: none;
 }
 
 .modal-buttons {
