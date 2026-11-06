@@ -730,6 +730,35 @@ if (isMobileOrTablet()) {
   const modalEl = document.getElementById('game-modal');
   const damageOverlay = document.getElementById('damage-overlay');
 
+  // --- Title Video Loop Controller ---
+  const titleVideo = document.getElementById('title-video');
+  let titleLoopTimeout = null;
+
+  function initTitleVideoLoop() {
+    if (!titleVideo) return;
+
+    if (titleLoopTimeout) {
+      clearTimeout(titleLoopTimeout);
+      titleLoopTimeout = null;
+    }
+
+    // Freeze on last frame, replay randomly between 2 and 5 seconds
+    titleVideo.onended = () => {
+      const delayMs = 2000 + Math.random() * 3000;
+      titleLoopTimeout = setTimeout(() => {
+        if (gameState === 'start_screen') {
+          titleVideo.currentTime = 0;
+          titleVideo.play().catch(() => {});
+        }
+      }, delayMs);
+    };
+
+    titleVideo.currentTime = 0;
+    titleVideo.play().catch(() => {});
+  }
+
+  initTitleVideoLoop();
+
   function updateHudCounts() {
     const currentFollowers = sheepList.filter((s) => s.state === 'following').length;
 
@@ -802,6 +831,14 @@ if (isMobileOrTablet()) {
     currentPlayerName = name;
     localStorage.setItem('black_sheep_player_name', currentPlayerName);
     closeNameModal();
+
+    if (titleLoopTimeout) {
+      clearTimeout(titleLoopTimeout);
+      titleLoopTimeout = null;
+    }
+    if (titleVideo) {
+      titleVideo.pause();
+    }
 
     titleScreenEl.classList.add('fade-out');
     howtoModalEl.classList.add('hidden');
@@ -907,7 +944,6 @@ if (isMobileOrTablet()) {
       }
     }
 
-    // Safety fallback if not already started during the approach
     if (!biteAudioStarted) {
       fadeInSound(SOUNDS.dogBite, 1.2, 1.0);
       biteAudioStarted = true;
@@ -965,6 +1001,8 @@ if (isMobileOrTablet()) {
 
     titleScreenEl.classList.remove('fade-out');
     gameState = 'start_screen';
+
+    initTitleVideoLoop();
   };
 
   // --- Input Handling ---
