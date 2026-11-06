@@ -16,23 +16,23 @@ body, html {
   width: 100vw;
   height: 100vh;
   display: block;
-  transition: filter 0.8s ease;
+  transition: filter 0.2s ease;
 }
 
 #game-canvas.grayscale-bg {
-  filter: grayscale(100%) contrast(1.1);
+  filter: grayscale(100%) contrast(1.15);
 }
 
 .serif-num {
   font-family: 'Cinzel', serif;
 }
 
-/* Persistent Top-Right Leaderboard */
+/* Persistent Top-Right Leaderboard: Always in front of all screens and filters */
 #corner-leaderboard {
   position: absolute;
   top: 24px;
   right: 28px;
-  z-index: 60;
+  z-index: 120;
   pointer-events: none;
   user-select: none;
   background: transparent;
@@ -52,7 +52,7 @@ body, html {
   font-size: 0.85rem;
   letter-spacing: 0.08em;
   color: #94a3b8;
-  opacity: 0.75;
+  opacity: 0.85;
 }
 
 .corner-leaderboard-row.current-player {
@@ -289,11 +289,6 @@ body, html {
   transform: translateY(-1px);
 }
 
-#howto-close-btn:active {
-  transform: translateY(1px);
-  opacity: 0.6;
-}
-
 /* In-Game HUD: Top Center Dual Counter */
 #ui {
   position: absolute;
@@ -404,7 +399,38 @@ body, html {
   100% { opacity: 0; }
 }
 
-/* Damage Overlay */
+/* Skip/Restart Button During Death Cutscene */
+#cutscene-again-btn {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Google Sans", "Inter", sans-serif;
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  z-index: 110;
+  padding: 8px 16px;
+  opacity: 0.85;
+  transition: opacity 0.2s ease, transform 0.2s ease, text-shadow 0.2s ease;
+}
+
+#cutscene-again-btn:hover {
+  opacity: 1;
+  text-shadow: 0 0 16px rgba(255, 255, 255, 0.7);
+  transform: translateX(-50%) translateY(-2px);
+}
+
+#cutscene-again-btn.hidden {
+  display: none !important;
+}
+
+/* Red blood overlay during wolf POV bite sequence */
 #damage-overlay {
   position: absolute;
   inset: 0;
@@ -425,11 +451,11 @@ body, html {
   100% { transform: scale(1.04); filter: brightness(1.4); }
 }
 
-/* End Game Screen */
+/* End Game Screen Modal */
 #game-modal {
   position: absolute;
   inset: 0;
-  background: rgba(2, 3, 8, 0.75);
+  background: rgba(2, 3, 8, 0.65);
   display: flex;
   justify-content: center;
   align-items: center;
