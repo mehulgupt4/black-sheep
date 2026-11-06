@@ -99,7 +99,6 @@ body, html {
 
 .sky-title-box {
   text-align: center;
-  color: #ffffff;
   user-select: none;
   display: flex;
   flex-direction: column;
@@ -107,22 +106,15 @@ body, html {
   gap: 16px;
 }
 
-/* Video Title Card */
-.title-video-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  max-width: 520px;
-  width: 80vw;
-  pointer-events: none;
-}
-
+/* Video Title Animation Card */
 #title-video {
-  width: 100%;
+  width: 480px;
+  max-width: 85vw;
   height: auto;
   display: block;
-  object-fit: contain;
-  filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.25));
+  background: transparent;
+  pointer-events: none;
+  outline: none;
 }
 
 .title-buttons {
