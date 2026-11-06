@@ -74,6 +74,21 @@ if (isMobileOrTablet()) {
     audio.play().catch(() => {});
   }
 
+  // Polyphonic overlapping playback with custom start offset (trimmed 0.5s from start)
+  function playOverlappingSound(audio, startTime = 0.5, volume = 0.85) {
+    if (!audio || isMuted) return;
+
+    const soundInstance = audio.cloneNode();
+    soundInstance.volume = volume;
+    soundInstance.currentTime = startTime;
+
+    soundInstance.play().catch(() => {});
+
+    soundInstance.addEventListener('ended', () => {
+      soundInstance.remove();
+    }, { once: true });
+  }
+
   function fadeInSound(audio, duration = 1.5, targetVolume = 1.0) {
     if (!audio || isMuted) return;
     if (biteFadeInterval) {
@@ -569,8 +584,8 @@ if (isMobileOrTablet()) {
         if (this.state !== 'following') {
           if (distToWolf <= FOLLOW_RADIUS) {
             this.state = 'following';
-            // Play sheep attraction sound effect upon entering the circle
-            playSound(SOUNDS.sheepFollow);
+            // Trimmed by 0.5s from start, polyphonic overlapping for multiple sheeps
+            playOverlappingSound(SOUNDS.sheepFollow, 0.5, 0.85);
             updateHudCounts();
             checkVictoryCondition();
           }
@@ -990,7 +1005,7 @@ if (isMobileOrTablet()) {
     playSound(SOUNDS.dogBark);
   }
 
-  // 3. First-person POV: Red halo and bite audio now trigger here exclusively
+  // 3. First-person POV
   function triggerWolfPOV() {
     gameState = 'cutscene_wolf_pov';
     cutsceneTimer = 0;
@@ -1013,7 +1028,6 @@ if (isMobileOrTablet()) {
       biteAudioStarted = true;
     }
 
-    // Red halo triggers only inside the first-person POV
     damageOverlay.classList.add('active');
   }
 
@@ -1263,7 +1277,6 @@ if (isMobileOrTablet()) {
       if (aDiff > Math.PI) aDiff -= Math.PI * 2;
       dog.mesh.rotation.y += aDiff * delta * 14.0;
 
-      // Audio fades in ~2s before impact, but visual red halo is held until POV
       if (distToWolf <= 42.0 && !biteAudioStarted) {
         fadeInSound(SOUNDS.dogBite, 1.5, 1.0);
         biteAudioStarted = true;
