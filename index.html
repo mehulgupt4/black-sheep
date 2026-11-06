@@ -23,16 +23,7 @@
   <div id="title-screen">
     <div class="sky-title-box">
       <!-- Animated Video Title Card -->
-      <div class="title-video-container">
-        <video
-          id="title-video"
-          src="assets/sounds/title.mp4"
-          muted
-          playsinline
-          autoplay
-        ></video>
-      </div>
-
+      <video id="title-video" src="assets/title.mp4" playsinline preload="auto"></video>
       <div class="title-buttons">
         <button id="start-btn" onclick="openNameModal()">Start</button>
         <button id="how-to-btn" onclick="toggleHowTo(true)">How To</button>
@@ -87,7 +78,7 @@
     </div>
   </div>
 
-  <!-- End Game Screen Modal -->
+  <!-- End Game Screen -->
   <div id="game-modal" class="hidden">
     <div class="modal-box">
       <div id="end-score" class="serif-num">0</div>
