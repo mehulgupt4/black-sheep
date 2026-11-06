@@ -12,13 +12,19 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 </head>
 <body>
+  <!-- Persistent Top-Right Leaderboard (Visible in Start, Game, & End screen) -->
+  <div id="corner-leaderboard">
+    <div id="corner-leaderboard-list">
+      <!-- Populated dynamically -->
+    </div>
+  </div>
+
   <!-- Title Screen in the Sky -->
   <div id="title-screen">
     <div class="sky-title-box">
       <h1 class="sky-title">BLACK SHEEP</h1>
       <div class="title-buttons">
         <button id="start-btn" onclick="openNameModal()">Start</button>
-        <button id="leaderboard-btn" onclick="toggleLeaderboard(true)">Leaderboard</button>
         <button id="how-to-btn" onclick="toggleHowTo(true)">How To</button>
       </div>
     </div>
@@ -33,17 +39,6 @@
         <button id="confirm-name-btn" onclick="submitNameAndStart()">Begin</button>
         <button id="cancel-name-btn" onclick="closeNameModal()">Cancel</button>
       </div>
-    </div>
-  </div>
-
-  <!-- Leaderboard Modal (Transparent Background) -->
-  <div id="leaderboard-modal" class="hidden">
-    <div class="leaderboard-box">
-      <h2 class="serif-num">LEADERBOARD</h2>
-      <div id="leaderboard-list">
-        <!-- Rendered dynamically -->
-      </div>
-      <button id="leaderboard-close-btn" onclick="toggleLeaderboard(false)">Back</button>
     </div>
   </div>
 
@@ -68,7 +63,7 @@
     <span id="max-followed-count" class="serif-num">0</span>
   </div>
 
-  <!-- Screen-Center "COVER BLOWN" Flash Banner (No Glow) -->
+  <!-- Screen-Center "COVER BLOWN" Flash Banner -->
   <div id="cover-blown-banner" class="hidden serif-num">COVER BLOWN</div>
 
   <div id="damage-overlay"></div>
@@ -86,13 +81,6 @@
   <div id="game-modal" class="hidden">
     <div class="modal-box">
       <div id="end-score" class="serif-num">0</div>
-      
-      <!-- Embedded Mini Leaderboard in End Screen -->
-      <div id="end-leaderboard-container">
-        <h3 class="serif-num">TOP HERDERS</h3>
-        <div id="end-leaderboard-list"></div>
-      </div>
-
       <div class="modal-buttons">
         <button id="again-btn" onclick="restartGame()">Again</button>
         <button id="title-btn" onclick="goToTitleScreen()">Title Screen</button>
