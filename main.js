@@ -65,9 +65,8 @@ if (isMobileOrTablet()) {
     }).join('');
   }
 
-  // --- Audio Sources & Manager ---
+  // --- Audio Sources & Manager (Sheep Scream Removed) ---
   const SOUNDS = {
-    sheepScream: new Audio('assets/sounds/sheep_scream.mp3'),
     dogBark: new Audio('assets/sounds/dog_bark.mp3'),
     dogBite: new Audio('assets/sounds/dog_bite.mp3'),
   };
@@ -290,6 +289,11 @@ if (isMobileOrTablet()) {
       this.hopFrequency = 9;
       this.hopHeight = 0.45;
 
+      this.dancePhase = Math.random() * Math.PI * 2;
+      this.danceSpeed = 12.0 + (this.index % 5) * 2.0;
+      this.danceHopPeak = 0.55 + (this.index % 4) * 0.25;
+      this.danceStyle = this.index % 3;
+
       this.resetPosition();
       scene.add(this.mesh);
     }
@@ -499,6 +503,22 @@ if (isMobileOrTablet()) {
 
       this.mesh.position.y = 0;
     }
+
+    updateBackgroundCheering(delta, time) {
+      if (this.state === 'falling' || !this.mesh.visible) return;
+      const t = time * this.danceSpeed + this.dancePhase;
+      this.mesh.position.y = Math.abs(Math.sin(t * 0.6)) * this.danceHopPeak;
+
+      if (this.danceStyle === 0) {
+        this.mesh.rotation.z = Math.sin(t * 0.5) * 0.35;
+        this.mesh.rotation.x = -Math.abs(Math.sin(t * 0.7)) * 0.25;
+      } else if (this.danceStyle === 1) {
+        this.mesh.rotation.y += delta * 3.5;
+      } else {
+        this.mesh.rotation.z = Math.cos(t * 0.7) * 0.28;
+        this.mesh.rotation.x = Math.sin(t * 0.9) * 0.32;
+      }
+    }
   }
 
   // Load models & instance sheep
@@ -566,11 +586,10 @@ if (isMobileOrTablet()) {
   function checkVictoryCondition() {
     const currentFollowers = sheepList.filter((s) => s.state === 'following').length;
     if (currentFollowers === SHEEP_COUNT && gameState === 'playing') {
-      gameState = 'victory';
+      gameState = 'gameover_loop';
       updateHudCounts();
       saveScoreToLeaderboard(currentPlayerName, currentFollowers);
 
-      // Display final session score
       if (endScoreEl) {
         endScoreEl.innerText = currentFollowers;
       }
@@ -638,15 +657,12 @@ if (isMobileOrTablet()) {
     }
   };
 
-  // 1. Zoom into the spotter sheep (stays color during close-up)
   function triggerGameOverCutscene(culpritSheep) {
     if (gameState !== 'playing') return;
     gameState = 'cutscene_zoom_sheep';
     detectedSheep = culpritSheep;
     detectedSheep.faceWolf();
     cutsceneTimer = 0;
-
-    playSound(SOUNDS.sheepScream);
 
     coverBlownBanner.className = 'serif-num flash-center';
 
@@ -657,15 +673,14 @@ if (isMobileOrTablet()) {
     camLookTarget.copy(player.mesh.position);
   }
 
-  // Brings up the end screen directly after cover blown & zoom-out
+  // Brings up the end screen directly while letting animations run underneath
   function showGameOverModal() {
-    gameState = 'gameover';
+    gameState = 'gameover_loop';
     inGameUiEl.classList.add('hidden');
     coverBlownBanner.className = 'hidden serif-num';
 
     const currentScore = sheepList.filter((s) => s.state === 'following').length;
 
-    // Show current run score on end screen
     if (endScoreEl) {
       endScoreEl.innerText = currentScore;
     }
@@ -675,7 +690,6 @@ if (isMobileOrTablet()) {
   }
 
   function resetWorldEntities() {
-    stopSound(SOUNDS.sheepScream);
     stopSound(SOUNDS.dogBark);
     stopSound(SOUNDS.dogBite);
 
@@ -684,7 +698,6 @@ if (isMobileOrTablet()) {
     detectedSheep = null;
     cutsceneTimer = 0;
 
-    // Reset black & white filter
     document.getElementById('game-canvas').classList.remove('grayscale-bg');
 
     player.mesh.visible = true;
@@ -842,7 +855,7 @@ if (isMobileOrTablet()) {
       const sPos = detectedSheep.mesh.position;
 
       if (cutsceneTimer < 1.4) {
-        // Zooming in close: stays in full color
+        // Close-up standoff
         const closeCamPos = new THREE.Vector3(
           sPos.x + 1.8,
           sPos.y + 1.5,
@@ -856,7 +869,7 @@ if (isMobileOrTablet()) {
         camera.lookAt(camLookTarget);
 
       } else if (cutsceneTimer < 2.5) {
-        // Zoom-out begins: turn black and white now
+        // Zoom-out: turn black and white
         document.getElementById('game-canvas').classList.add('grayscale-bg');
 
         if (!hasSheepTurned) {
@@ -878,9 +891,30 @@ if (isMobileOrTablet()) {
         camera.lookAt(camLookTarget);
 
       } else {
-        // Directly bring up end game modal with current score
         showGameOverModal();
       }
+
+    } else if (gameState === 'gameover_loop') {
+      // Background continues animating while end screen is shown
+      cutsceneTimer += delta;
+
+      if (detectedSheep) {
+        detectedSheep.continueFleeStraight(delta);
+      }
+
+      for (let i = 0; i < sheepList.length; i++) {
+        if (sheepList[i] !== detectedSheep) {
+          sheepList[i].updateBackgroundCheering(delta, cutsceneTimer);
+        }
+      }
+
+      const normalCamPos = new THREE.Vector3(
+        player.mesh.position.x,
+        player.mesh.position.y + CAM_OFFSET_Y,
+        player.mesh.position.z + CAM_OFFSET_Z
+      );
+      camera.position.lerp(normalCamPos, delta * 3.0);
+      camera.lookAt(player.mesh.position.x, player.mesh.position.y + CAM_LOOK_OFFSET_Y, player.mesh.position.z);
     }
 
     renderer.render(scene, camera);
