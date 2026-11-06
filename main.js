@@ -14,6 +14,109 @@ if (isMobileOrTablet()) {
     desktopOnlyScreen.classList.remove('hidden');
   }
 } else {
+  // --- Audio State & Mute Control ---
+  let isMuted = localStorage.getItem('black_sheep_muted') === 'true';
+
+  const SOUNDS = {
+    dogBark: new Audio('assets/sounds/dog_bark.mp3'),
+    dogBite: new Audio('assets/sounds/dog_bite.mp3'),
+    sheepFollow: new Audio('assets/sounds/sheep.mp3'),
+  };
+
+  const titleVideo = document.getElementById('title-video');
+  const muteIconUnmuted = document.getElementById('mute-icon-unmuted');
+  const muteIconMuted = document.getElementById('mute-icon-muted');
+
+  function updateMuteUI() {
+    if (muteIconUnmuted && muteIconMuted) {
+      if (isMuted) {
+        muteIconUnmuted.classList.add('hidden');
+        muteIconMuted.classList.remove('hidden');
+      } else {
+        muteIconUnmuted.classList.remove('hidden');
+        muteIconMuted.classList.add('hidden');
+      }
+    }
+  }
+
+  window.toggleMute = function () {
+    isMuted = !isMuted;
+    localStorage.setItem('black_sheep_muted', isMuted.toString());
+
+    if (titleVideo) {
+      titleVideo.muted = isMuted;
+    }
+
+    if (isMuted) {
+      Object.values(SOUNDS).forEach((audio) => {
+        audio.pause();
+      });
+    }
+
+    updateMuteUI();
+  };
+
+  updateMuteUI();
+
+  let povFrozen = false;
+  let biteAudioStarted = false;
+  let biteFadeInterval = null;
+
+  SOUNDS.dogBite.addEventListener('ended', () => {
+    povFrozen = true;
+    damageOverlay.classList.remove('active');
+  });
+
+  function playSound(audio) {
+    if (!audio || isMuted) return;
+    audio.currentTime = 0;
+    audio.volume = 1.0;
+    audio.play().catch(() => {});
+  }
+
+  function fadeInSound(audio, duration = 1.5, targetVolume = 1.0) {
+    if (!audio || isMuted) return;
+    if (biteFadeInterval) {
+      clearInterval(biteFadeInterval);
+      biteFadeInterval = null;
+    }
+
+    audio.currentTime = 0;
+    audio.volume = 0.0;
+    audio.play().catch(() => {});
+
+    const stepMs = 50;
+    const totalSteps = (duration * 1000) / stepMs;
+    const volumeStep = targetVolume / totalSteps;
+
+    biteFadeInterval = setInterval(() => {
+      if (isMuted) {
+        audio.volume = 0.0;
+        clearInterval(biteFadeInterval);
+        biteFadeInterval = null;
+        return;
+      }
+      if (audio.volume + volumeStep >= targetVolume) {
+        audio.volume = targetVolume;
+        clearInterval(biteFadeInterval);
+        biteFadeInterval = null;
+      } else {
+        audio.volume = Math.min(targetVolume, audio.volume + volumeStep);
+      }
+    }, stepMs);
+  }
+
+  function stopSound(audio) {
+    if (!audio) return;
+    if (audio === SOUNDS.dogBite && biteFadeInterval) {
+      clearInterval(biteFadeInterval);
+      biteFadeInterval = null;
+    }
+    audio.pause();
+    audio.currentTime = 0;
+    audio.volume = 1.0;
+  }
+
   // --- Persistent Leaderboard State ---
   let currentPlayerName = localStorage.getItem('black_sheep_player_name') || 'Anonymous';
 
@@ -66,20 +169,21 @@ if (isMobileOrTablet()) {
   }
 
   // --- Title Video Animation & Random Freeze Loop ---
-  const titleVideo = document.getElementById('title-video');
   let titleLoopTimeout = null;
 
   function initTitleVideo() {
     if (!titleVideo) return;
-    titleVideo.muted = false;
+    titleVideo.muted = isMuted;
     titleVideo.volume = 1.0;
 
     titleVideo.play().catch(() => {
       titleVideo.muted = true;
       titleVideo.play().catch(() => {});
       const enableAudioOnUserGesture = () => {
-        titleVideo.muted = false;
-        titleVideo.volume = 1.0;
+        if (!isMuted) {
+          titleVideo.muted = false;
+          titleVideo.volume = 1.0;
+        }
         window.removeEventListener('pointerdown', enableAudioOnUserGesture);
         window.removeEventListener('keydown', enableAudioOnUserGesture);
       };
@@ -114,68 +218,9 @@ if (isMobileOrTablet()) {
   function resumeTitleVideo() {
     if (!titleVideo) return;
     titleVideo.currentTime = 0;
-    titleVideo.muted = false;
+    titleVideo.muted = isMuted;
     titleVideo.volume = 1.0;
     titleVideo.play().catch(() => {});
-  }
-
-  // --- Audio Sources & Manager ---
-  const SOUNDS = {
-    dogBark: new Audio('assets/sounds/dog_bark.mp3'),
-    dogBite: new Audio('assets/sounds/dog_bite.mp3'),
-  };
-
-  let povFrozen = false;
-  let biteAudioStarted = false;
-  let biteFadeInterval = null;
-
-  SOUNDS.dogBite.addEventListener('ended', () => {
-    povFrozen = true;
-    damageOverlay.classList.remove('active');
-  });
-
-  function playSound(audio) {
-    if (!audio) return;
-    audio.currentTime = 0;
-    audio.volume = 1.0;
-    audio.play().catch(() => {});
-  }
-
-  function fadeInSound(audio, duration = 1.5, targetVolume = 1.0) {
-    if (!audio) return;
-    if (biteFadeInterval) {
-      clearInterval(biteFadeInterval);
-      biteFadeInterval = null;
-    }
-
-    audio.currentTime = 0;
-    audio.volume = 0.0;
-    audio.play().catch(() => {});
-
-    const stepMs = 50;
-    const totalSteps = (duration * 1000) / stepMs;
-    const volumeStep = targetVolume / totalSteps;
-
-    biteFadeInterval = setInterval(() => {
-      if (audio.volume + volumeStep >= targetVolume) {
-        audio.volume = targetVolume;
-        clearInterval(biteFadeInterval);
-        biteFadeInterval = null;
-      } else {
-        audio.volume = Math.min(targetVolume, audio.volume + volumeStep);
-      }
-    }, stepMs);
-  }
-
-  function stopSound(audio) {
-    if (!audio) return;
-    if (audio === SOUNDS.dogBite && biteFadeInterval) {
-      clearInterval(biteFadeInterval);
-      biteFadeInterval = null;
-    }
-    audio.pause();
-    audio.currentTime = 0;
-    audio.volume = 1.0;
   }
 
   // --- Scene, Camera, Renderer ---
@@ -524,6 +569,8 @@ if (isMobileOrTablet()) {
         if (this.state !== 'following') {
           if (distToWolf <= FOLLOW_RADIUS) {
             this.state = 'following';
+            // Play sheep attraction sound effect upon entering the circle
+            playSound(SOUNDS.sheepFollow);
             updateHudCounts();
             checkVictoryCondition();
           }
@@ -943,7 +990,7 @@ if (isMobileOrTablet()) {
     playSound(SOUNDS.dogBark);
   }
 
-  // 3. First-person POV
+  // 3. First-person POV: Red halo and bite audio now trigger here exclusively
   function triggerWolfPOV() {
     gameState = 'cutscene_wolf_pov';
     cutsceneTimer = 0;
@@ -966,12 +1013,14 @@ if (isMobileOrTablet()) {
       biteAudioStarted = true;
     }
 
+    // Red halo triggers only inside the first-person POV
     damageOverlay.classList.add('active');
   }
 
   function resetWorldEntities() {
     stopSound(SOUNDS.dogBark);
     stopSound(SOUNDS.dogBite);
+    stopSound(SOUNDS.sheepFollow);
 
     damageOverlay.classList.remove('active');
     coverBlownBanner.className = 'hidden serif-num';
@@ -1214,10 +1263,10 @@ if (isMobileOrTablet()) {
       if (aDiff > Math.PI) aDiff -= Math.PI * 2;
       dog.mesh.rotation.y += aDiff * delta * 14.0;
 
+      // Audio fades in ~2s before impact, but visual red halo is held until POV
       if (distToWolf <= 42.0 && !biteAudioStarted) {
         fadeInSound(SOUNDS.dogBite, 1.5, 1.0);
         biteAudioStarted = true;
-        damageOverlay.classList.add('active');
       }
 
       if (distToWolf > 2.0) {
