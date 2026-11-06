@@ -14,9 +14,9 @@ if (isMobileOrTablet()) {
     desktopOnlyScreen.classList.remove('hidden');
   }
 } else {
-  // --- Leaderboard & Player State ---
+  // --- Persistent Leaderboard State ---
   let currentPlayerName = localStorage.getItem('black_sheep_player_name') || 'Anonymous';
-  
+
   function getLeaderboard() {
     try {
       return JSON.parse(localStorage.getItem('black_sheep_leaderboard')) || [];
@@ -40,25 +40,26 @@ if (isMobileOrTablet()) {
 
     board.sort((a, b) => b.score - a.score);
     localStorage.setItem('black_sheep_leaderboard', JSON.stringify(board.slice(0, 10)));
+    renderCornerLeaderboard();
   }
 
-  function renderLeaderboardHTML(containerId, maxItems = 10) {
-    const container = document.getElementById(containerId);
+  function renderCornerLeaderboard() {
+    const container = document.getElementById('corner-leaderboard-list');
     if (!container) return;
-    const board = getLeaderboard().slice(0, maxItems);
+    const board = getLeaderboard().slice(0, 5);
 
     if (board.length === 0) {
-      container.innerHTML = '<div class="leaderboard-row" style="justify-content:center; opacity:0.4;">No scores yet</div>';
+      container.innerHTML = '<div class="corner-leaderboard-row" style="opacity:0.35;">No runs yet</div>';
       return;
     }
 
     container.innerHTML = board.map((entry, idx) => {
       const isCurrent = entry.name.toLowerCase() === currentPlayerName.toLowerCase();
       return `
-        <div class="leaderboard-row ${isCurrent ? 'current-player' : ''}">
-          <span class="leaderboard-rank serif-num">${idx + 1}</span>
-          <span class="leaderboard-name serif-num">${entry.name}</span>
-          <span class="leaderboard-val serif-num">${entry.score}</span>
+        <div class="corner-leaderboard-row ${isCurrent ? 'current-player' : ''}">
+          <span class="corner-leaderboard-rank serif-num">${idx + 1}</span>
+          <span class="corner-leaderboard-name serif-num">${entry.name}</span>
+          <span class="corner-leaderboard-val serif-num">${entry.score}</span>
         </div>
       `;
     }).join('');
@@ -394,6 +395,20 @@ if (isMobileOrTablet()) {
       }
     }
 
+    // Dynamic speed based on currently followed flock count
+    getDynamicFollowSpeed(distToWolf, currentFollowedCount) {
+      if (distToWolf <= BLOWN_RADIUS) {
+        if (currentFollowedCount <= 10) {
+          return 1.8 + Math.random() * 0.6; // Slow at beginning
+        } else if (currentFollowedCount <= 20) {
+          return 3.2 + Math.random() * 0.6; // Moderate speed
+        } else {
+          return 4.6 + Math.random() * 0.6; // Difficult & fast
+        }
+      }
+      return this.followSpeed;
+    }
+
     update(delta) {
       if (this.state === 'falling') {
         this.updateFall(delta);
@@ -405,6 +420,7 @@ if (isMobileOrTablet()) {
       const dx = player.mesh.position.x - this.mesh.position.x;
       const dz = player.mesh.position.z - this.mesh.position.z;
       const distToWolf = Math.hypot(dx, dz);
+      const currentFollowers = sheepList.filter((s) => s.state === 'following').length;
 
       if (gameState === 'playing') {
         if (distToWolf <= BLOWN_RADIUS) {
@@ -440,11 +456,13 @@ if (isMobileOrTablet()) {
         if (diff > Math.PI) diff -= Math.PI * 2;
         this.mesh.rotation.y += diff * delta * 5.0;
 
+        const dynamicSpeed = this.getDynamicFollowSpeed(distToWolf, currentFollowers);
+
         const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(
           new THREE.Vector3(0, 1, 0),
           this.mesh.rotation.y
         );
-        this.mesh.position.addScaledVector(forward, this.followSpeed * delta);
+        this.mesh.position.addScaledVector(forward, dynamicSpeed * delta);
 
         this.hopPhase += delta * (this.hopFrequency * 1.3);
         this.mesh.position.y = Math.abs(Math.sin(this.hopPhase)) * (this.hopHeight * 1.2);
@@ -644,6 +662,7 @@ if (isMobileOrTablet()) {
         sheepList.push(new Sheep(sheepTemplate, i));
       }
       updateHudCounts();
+      renderCornerLeaderboard();
     },
     undefined,
     (err) => {
@@ -652,6 +671,7 @@ if (isMobileOrTablet()) {
         sheepList.push(new Sheep(null, i));
       }
       updateHudCounts();
+      renderCornerLeaderboard();
     }
   );
 
@@ -659,7 +679,6 @@ if (isMobileOrTablet()) {
   const titleScreenEl = document.getElementById('title-screen');
   const nameModalEl = document.getElementById('name-modal');
   const playerNameInput = document.getElementById('player-name-input');
-  const leaderboardModalEl = document.getElementById('leaderboard-modal');
   const howtoModalEl = document.getElementById('howto-modal');
   const countdownOverlay = document.getElementById('countdown-overlay');
   const inGameUiEl = document.getElementById('ui');
@@ -692,6 +711,7 @@ if (isMobileOrTablet()) {
     }
   }
   updateHudCounts();
+  renderCornerLeaderboard();
 
   function checkVictoryCondition() {
     const currentFollowers = sheepList.filter((s) => s.state === 'following').length;
@@ -699,7 +719,6 @@ if (isMobileOrTablet()) {
       gameState = 'victory';
       updateHudCounts();
       saveScoreToLeaderboard(currentPlayerName, currentFollowers);
-      renderLeaderboardHTML('end-leaderboard-list', 5);
       document.getElementById('game-canvas').classList.add('grayscale-bg');
       modalEl.classList.remove('hidden');
     }
@@ -743,7 +762,6 @@ if (isMobileOrTablet()) {
 
     titleScreenEl.classList.add('fade-out');
     howtoModalEl.classList.add('hidden');
-    leaderboardModalEl.classList.add('hidden');
     gameState = 'descending';
     descentProgress = 0;
   };
@@ -755,15 +773,6 @@ if (isMobileOrTablet()) {
       }
     });
   }
-
-  window.toggleLeaderboard = function (show) {
-    if (show) {
-      renderLeaderboardHTML('leaderboard-list', 10);
-      leaderboardModalEl.classList.remove('hidden');
-    } else {
-      leaderboardModalEl.classList.add('hidden');
-    }
-  };
 
   window.toggleHowTo = function (show) {
     if (show) {
@@ -851,7 +860,6 @@ if (isMobileOrTablet()) {
 
     updateHudCounts();
     saveScoreToLeaderboard(currentPlayerName, maxFollowed);
-    renderLeaderboardHTML('end-leaderboard-list', 5);
 
     modalEl.classList.remove('hidden');
   }
