@@ -137,6 +137,7 @@ body, html {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  transform: translateY(-40px);
 }
 
 /* Video Title Card */
