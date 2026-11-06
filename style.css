@@ -27,6 +27,44 @@ body, html {
   font-family: 'Cinzel', serif;
 }
 
+/* Top-Left Audio Toggle Button */
+#mute-toggle-btn {
+  position: absolute;
+  top: 24px;
+  left: 28px;
+  z-index: 120;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 50%;
+  opacity: 0.8;
+  transition: opacity 0.2s ease, transform 0.2s ease, color 0.2s ease;
+}
+
+#mute-toggle-btn:hover {
+  opacity: 1;
+  color: #ffffff;
+  transform: scale(1.1);
+}
+
+#mute-toggle-btn:active {
+  transform: scale(0.95);
+}
+
+#mute-toggle-btn svg {
+  display: block;
+}
+
+#mute-toggle-btn .hidden {
+  display: none !important;
+}
+
 /* Persistent Top-Right Leaderboard */
 #corner-leaderboard {
   position: absolute;
@@ -413,7 +451,7 @@ body, html {
   100% { opacity: 0; }
 }
 
-/* Damage Overlay */
+/* Red Blood Halo: Only active during POV bite */
 #damage-overlay {
   position: absolute;
   inset: 0;
