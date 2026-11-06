@@ -71,30 +71,29 @@ if (isMobileOrTablet()) {
 
   function initTitleVideo() {
     if (!titleVideo) return;
-
-    // Start muted to satisfy browser autoplay restrictions
-    titleVideo.muted = true;
+    titleVideo.muted = false;
     titleVideo.volume = 1.0;
-    titleVideo.playsInline = true;
 
-    titleVideo.play().catch((err) => {
-      console.warn("Autoplay blocked:", err);
+    // Start video playback
+    titleVideo.play().catch(() => {
+      // If autoplay with sound is blocked, start muted and unmute on first page interaction
+      titleVideo.muted = true;
+      titleVideo.play().catch(() => {});
+      const enableAudioOnUserGesture = () => {
+        titleVideo.muted = false;
+        titleVideo.volume = 1.0;
+        window.removeEventListener('pointerdown', enableAudioOnUserGesture);
+        window.removeEventListener('keydown', enableAudioOnUserGesture);
+      };
+      window.addEventListener('pointerdown', enableAudioOnUserGesture);
+      window.addEventListener('keydown', enableAudioOnUserGesture);
     });
 
-    // Unmute immediately on the player's first interaction
-    const enableAudio = () => {
-      titleVideo.muted = false;
-      titleVideo.volume = 1.0;
-      window.removeEventListener('pointerdown', enableAudio);
-      window.removeEventListener('keydown', enableAudio);
-    };
-    window.addEventListener('pointerdown', enableAudio);
-    window.addEventListener('keydown', enableAudio);
-
-    // Freeze on last frame, replay every 2 to 5 seconds randomly
+    // When the animation completes: freeze on last frame, then replay randomly in 2 to 5 seconds
     titleVideo.addEventListener('ended', () => {
       if (titleLoopTimeout) clearTimeout(titleLoopTimeout);
 
+      // Random delay between 2000ms and 5000ms
       const delay = 2000 + Math.random() * 3000;
       titleLoopTimeout = setTimeout(() => {
         if (gameState === 'start_screen') {
@@ -119,6 +118,8 @@ if (isMobileOrTablet()) {
   function resumeTitleVideo() {
     if (!titleVideo) return;
     titleVideo.currentTime = 0;
+    titleVideo.muted = false;
+    titleVideo.volume = 1.0;
     titleVideo.play().catch(() => {});
   }
 
@@ -132,6 +133,7 @@ if (isMobileOrTablet()) {
   let biteAudioStarted = false;
   let biteFadeInterval = null;
 
+  // Freeze the background animation once dog bite audio completes
   SOUNDS.dogBite.addEventListener('ended', () => {
     povFrozen = true;
     damageOverlay.classList.remove('active');
@@ -144,6 +146,7 @@ if (isMobileOrTablet()) {
     audio.play().catch(() => {});
   }
 
+  // Linear fade-in helper
   function fadeInSound(audio, duration = 1.5, targetVolume = 1.0) {
     if (!audio) return;
     if (biteFadeInterval) {
@@ -901,6 +904,7 @@ if (isMobileOrTablet()) {
     camLookTarget.copy(player.mesh.position);
   }
 
+  // Shows the end screen modal synchronized with the grayscale change
   function showGameOverModal() {
     inGameUiEl.classList.add('hidden');
     coverBlownBanner.className = 'hidden serif-num';
@@ -1216,6 +1220,7 @@ if (isMobileOrTablet()) {
       if (aDiff > Math.PI) aDiff -= Math.PI * 2;
       dog.mesh.rotation.y += aDiff * delta * 14.0;
 
+      // Smooth linear fade-in starting ~2 seconds before arrival (42 units)
       if (distToWolf <= 42.0 && !biteAudioStarted) {
         fadeInSound(SOUNDS.dogBite, 1.5, 1.0);
         biteAudioStarted = true;
