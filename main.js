@@ -14,6 +14,56 @@ if (isMobileOrTablet()) {
     desktopOnlyScreen.classList.remove('hidden');
   }
 } else {
+  // --- Leaderboard & Player State ---
+  let currentPlayerName = localStorage.getItem('black_sheep_player_name') || 'Anonymous';
+  
+  function getLeaderboard() {
+    try {
+      return JSON.parse(localStorage.getItem('black_sheep_leaderboard')) || [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveScoreToLeaderboard(name, score) {
+    if (!name || score <= 0) return;
+    const board = getLeaderboard();
+    const existing = board.find((entry) => entry.name.toLowerCase() === name.toLowerCase());
+
+    if (existing) {
+      if (score > existing.score) {
+        existing.score = score;
+      }
+    } else {
+      board.push({ name, score });
+    }
+
+    board.sort((a, b) => b.score - a.score);
+    localStorage.setItem('black_sheep_leaderboard', JSON.stringify(board.slice(0, 10)));
+  }
+
+  function renderLeaderboardHTML(containerId, maxItems = 10) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const board = getLeaderboard().slice(0, maxItems);
+
+    if (board.length === 0) {
+      container.innerHTML = '<div class="leaderboard-row" style="justify-content:center; opacity:0.4;">No scores yet</div>';
+      return;
+    }
+
+    container.innerHTML = board.map((entry, idx) => {
+      const isCurrent = entry.name.toLowerCase() === currentPlayerName.toLowerCase();
+      return `
+        <div class="leaderboard-row ${isCurrent ? 'current-player' : ''}">
+          <span class="leaderboard-rank serif-num">${idx + 1}</span>
+          <span class="leaderboard-name serif-num">${entry.name}</span>
+          <span class="leaderboard-val serif-num">${entry.score}</span>
+        </div>
+      `;
+    }).join('');
+  }
+
   // --- Audio Sources & Manager ---
   const SOUNDS = {
     sheepScream: new Audio('assets/sounds/sheep_scream.mp3'),
@@ -143,7 +193,6 @@ if (isMobileOrTablet()) {
   let descentProgress = 0;
   const descentDuration = 1.8;
 
-  // Countdown timing states
   let countdownSeconds = 3;
   let countdownTimer = 0;
 
@@ -608,6 +657,9 @@ if (isMobileOrTablet()) {
 
   // --- UI Elements ---
   const titleScreenEl = document.getElementById('title-screen');
+  const nameModalEl = document.getElementById('name-modal');
+  const playerNameInput = document.getElementById('player-name-input');
+  const leaderboardModalEl = document.getElementById('leaderboard-modal');
   const howtoModalEl = document.getElementById('howto-modal');
   const countdownOverlay = document.getElementById('countdown-overlay');
   const inGameUiEl = document.getElementById('ui');
@@ -628,6 +680,7 @@ if (isMobileOrTablet()) {
     if (currentFollowers > maxFollowed) {
       maxFollowed = currentFollowers;
       localStorage.setItem('black_sheep_max_followed', maxFollowed.toString());
+      saveScoreToLeaderboard(currentPlayerName, maxFollowed);
     }
 
     if (maxFollowedCountEl) {
@@ -645,6 +698,8 @@ if (isMobileOrTablet()) {
     if (currentFollowers === SHEEP_COUNT && gameState === 'playing') {
       gameState = 'victory';
       updateHudCounts();
+      saveScoreToLeaderboard(currentPlayerName, currentFollowers);
+      renderLeaderboardHTML('end-leaderboard-list', 5);
       document.getElementById('game-canvas').classList.add('grayscale-bg');
       modalEl.classList.remove('hidden');
     }
@@ -663,12 +718,51 @@ if (isMobileOrTablet()) {
     updateHudCounts();
   }
 
-  window.startGame = function () {
-    if (gameState !== 'start_screen') return;
+  // --- Modal & Name Handlers ---
+  window.openNameModal = function () {
+    if (nameModalEl) {
+      nameModalEl.classList.remove('hidden');
+      if (playerNameInput) {
+        playerNameInput.value = currentPlayerName !== 'Anonymous' ? currentPlayerName : '';
+        playerNameInput.focus();
+      }
+    }
+  };
+
+  window.closeNameModal = function () {
+    if (nameModalEl) {
+      nameModalEl.classList.add('hidden');
+    }
+  };
+
+  window.submitNameAndStart = function () {
+    const name = playerNameInput.value.trim() || 'Anonymous';
+    currentPlayerName = name;
+    localStorage.setItem('black_sheep_player_name', currentPlayerName);
+    closeNameModal();
+
     titleScreenEl.classList.add('fade-out');
     howtoModalEl.classList.add('hidden');
+    leaderboardModalEl.classList.add('hidden');
     gameState = 'descending';
     descentProgress = 0;
+  };
+
+  if (playerNameInput) {
+    playerNameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        submitNameAndStart();
+      }
+    });
+  }
+
+  window.toggleLeaderboard = function (show) {
+    if (show) {
+      renderLeaderboardHTML('leaderboard-list', 10);
+      leaderboardModalEl.classList.remove('hidden');
+    } else {
+      leaderboardModalEl.classList.add('hidden');
+    }
   };
 
   window.toggleHowTo = function (show) {
@@ -756,6 +850,9 @@ if (isMobileOrTablet()) {
     document.getElementById('game-canvas').classList.add('grayscale-bg');
 
     updateHudCounts();
+    saveScoreToLeaderboard(currentPlayerName, maxFollowed);
+    renderLeaderboardHTML('end-leaderboard-list', 5);
+
     modalEl.classList.remove('hidden');
   }
 
@@ -853,14 +950,12 @@ if (isMobileOrTablet()) {
     } else if (gameState === 'countdown') {
       countdownTimer += delta;
 
-      // Pulse countdown 3 -> 2 -> 1
       if (countdownTimer >= 1.0) {
         countdownTimer -= 1.0;
         countdownSeconds -= 1;
 
         if (countdownSeconds > 0) {
           countdownOverlay.innerText = countdownSeconds.toString();
-          // Reset CSS animation
           countdownOverlay.classList.remove('countdown-tick');
           void countdownOverlay.offsetWidth;
           countdownOverlay.classList.add('countdown-tick');
