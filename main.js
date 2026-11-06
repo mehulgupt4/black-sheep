@@ -72,7 +72,6 @@ if (isMobileOrTablet()) {
   };
 
   let povFrozen = false;
-  let hasBiteStarted = false;
 
   // Freeze the background animation once dog bite audio completes
   SOUNDS.dogBite.addEventListener('ended', () => {
@@ -80,8 +79,9 @@ if (isMobileOrTablet()) {
     damageOverlay.classList.remove('active');
   });
 
-  function playSound(audio) {
+  function playSound(audio, volume = 1.0) {
     if (!audio) return;
+    audio.volume = volume;
     audio.currentTime = 0;
     audio.play().catch(() => {});
   }
@@ -211,6 +211,9 @@ if (isMobileOrTablet()) {
   let dogChargeStart = new THREE.Vector3();
   let dogSpeed = 20.0;
   let povLookDirection = new THREE.Vector3();
+
+  // Total estimated pre-POV cutscene duration for audio volume ramp
+  const PRE_POV_DURATION = 6.2; // ~2.5s zoom + ~3.7s dog run
 
   let maxFollowed = parseInt(localStorage.getItem('black_sheep_max_followed') || '0', 10);
 
@@ -799,7 +802,9 @@ if (isMobileOrTablet()) {
     detectedSheep.faceWolf();
     cutsceneTimer = 0;
     povFrozen = false;
-    hasBiteStarted = false;
+
+    // Start dog biting audio immediately at 0 volume
+    playSound(SOUNDS.dogBite, 0);
 
     coverBlownBanner.className = 'serif-num flash-center';
 
@@ -859,6 +864,9 @@ if (isMobileOrTablet()) {
     gameState = 'cutscene_wolf_pov';
     cutsceneTimer = 0;
 
+    // Lock volume strictly at 1.0 upon entering POV
+    SOUNDS.dogBite.volume = 1.0;
+
     player.mesh.visible = false;
     povLookDirection.subVectors(dog.mesh.position, player.mesh.position).normalize();
     povLookDirection.y = 0;
@@ -872,12 +880,7 @@ if (isMobileOrTablet()) {
       }
     }
 
-    // If bite sound hasn't triggered yet, ensure bark is stopped and bite starts
-    if (!hasBiteStarted) {
-      stopSound(SOUNDS.dogBark);
-      playSound(SOUNDS.dogBite);
-      hasBiteStarted = true;
-    }
+    stopSound(SOUNDS.dogBark);
 
     damageOverlay.classList.add('active');
   }
@@ -885,6 +888,7 @@ if (isMobileOrTablet()) {
   function resetWorldEntities() {
     stopSound(SOUNDS.dogBark);
     stopSound(SOUNDS.dogBite);
+    SOUNDS.dogBite.volume = 0;
 
     damageOverlay.classList.remove('active');
     coverBlownBanner.className = 'hidden serif-num';
@@ -892,7 +896,6 @@ if (isMobileOrTablet()) {
     detectedSheep = null;
     cutsceneTimer = 0;
     povFrozen = false;
-    hasBiteStarted = false;
 
     // Reset black & white filter
     document.getElementById('game-canvas').classList.remove('grayscale-bg');
@@ -1054,6 +1057,9 @@ if (isMobileOrTablet()) {
     } else if (gameState === 'cutscene_zoom_sheep') {
       cutsceneTimer += delta;
 
+      // Consistently interpolate volume from 0 -> 100% up to the start of POV
+      SOUNDS.dogBite.volume = THREE.MathUtils.clamp(cutsceneTimer / PRE_POV_DURATION, 0, 1);
+
       const sPos = detectedSheep.mesh.position;
 
       if (cutsceneTimer < 1.4) {
@@ -1070,6 +1076,7 @@ if (isMobileOrTablet()) {
         camera.lookAt(camLookTarget);
 
       } else if (cutsceneTimer < 2.5) {
+        // Zoom-out begins: canvas turns black & white AND end screen appears
         if (!document.getElementById('game-canvas').classList.contains('grayscale-bg')) {
           document.getElementById('game-canvas').classList.add('grayscale-bg');
           showGameOverModal();
@@ -1100,6 +1107,9 @@ if (isMobileOrTablet()) {
     } else if (gameState === 'cutscene_dog_approach') {
       cutsceneTimer += delta;
 
+      // Continue consistent volume ramp toward 100%
+      SOUNDS.dogBite.volume = THREE.MathUtils.clamp((2.5 + cutsceneTimer) / PRE_POV_DURATION, 0, 1);
+
       if (detectedSheep) {
         detectedSheep.continueFleeStraight(delta);
       }
@@ -1118,13 +1128,6 @@ if (isMobileOrTablet()) {
       const toWolf = new THREE.Vector3().subVectors(wolfPos, dogPos);
       const distToWolf = toWolf.length();
 
-      // Trigger biting sound the moment the dog enters the small danger ring
-      if (distToWolf <= BLOWN_RADIUS && !hasBiteStarted) {
-        stopSound(SOUNDS.dogBark);
-        playSound(SOUNDS.dogBite);
-        hasBiteStarted = true;
-      }
-
       const forwardDir = toWolf.clone().normalize();
 
       const moveAngle = Math.atan2(forwardDir.x, forwardDir.z) + Math.PI;
@@ -1133,7 +1136,7 @@ if (isMobileOrTablet()) {
       if (aDiff > Math.PI) aDiff -= Math.PI * 2;
       dog.mesh.rotation.y += aDiff * delta * 14.0;
 
-      if (distToWolf > 1.2) {
+      if (distToWolf > 2.0) {
         dog.mesh.position.addScaledVector(forwardDir, dogSpeed * delta);
         dog.mesh.position.y = 0;
       } else {
@@ -1147,6 +1150,7 @@ if (isMobileOrTablet()) {
       }
 
     } else if (gameState === 'cutscene_wolf_pov') {
+      // Freeze all movement and camera shake once audio concludes
       if (!povFrozen) {
         cutsceneTimer += delta;
 
