@@ -72,8 +72,8 @@ if (isMobileOrTablet()) {
   };
 
   let povFrozen = false;
+  let biteTriggered = false;
 
-  // Freeze the background animation once dog bite audio completes
   SOUNDS.dogBite.addEventListener('ended', () => {
     povFrozen = true;
     damageOverlay.classList.remove('active');
@@ -798,6 +798,7 @@ if (isMobileOrTablet()) {
     detectedSheep.faceWolf();
     cutsceneTimer = 0;
     povFrozen = false;
+    biteTriggered = false;
 
     coverBlownBanner.className = 'serif-num flash-center';
 
@@ -815,7 +816,6 @@ if (isMobileOrTablet()) {
 
     const currentScore = sheepList.filter((s) => s.state === 'following').length;
 
-    // Show current game's score on end screen
     if (endScoreEl) {
       endScoreEl.innerText = currentScore;
     }
@@ -823,7 +823,6 @@ if (isMobileOrTablet()) {
     saveScoreToLeaderboard(currentPlayerName, currentScore);
 
     modalEl.classList.remove('hidden');
-    // Trigger CSS opacity transition
     requestAnimationFrame(() => {
       modalEl.classList.add('visible');
     });
@@ -873,7 +872,12 @@ if (isMobileOrTablet()) {
     }
 
     stopSound(SOUNDS.dogBark);
-    playSound(SOUNDS.dogBite);
+
+    // If biting sound hasn't triggered yet, play it now
+    if (!biteTriggered) {
+      playSound(SOUNDS.dogBite);
+      biteTriggered = true;
+    }
 
     damageOverlay.classList.add('active');
   }
@@ -888,6 +892,7 @@ if (isMobileOrTablet()) {
     detectedSheep = null;
     cutsceneTimer = 0;
     povFrozen = false;
+    biteTriggered = false;
 
     // Reset black & white filter
     document.getElementById('game-canvas').classList.remove('grayscale-bg');
@@ -1052,7 +1057,6 @@ if (isMobileOrTablet()) {
       const sPos = detectedSheep.mesh.position;
 
       if (cutsceneTimer < 1.4) {
-        // Zooming in close: stays in color
         const closeCamPos = new THREE.Vector3(
           sPos.x + 1.8,
           sPos.y + 1.5,
@@ -1091,7 +1095,6 @@ if (isMobileOrTablet()) {
         camera.lookAt(camLookTarget);
 
       } else {
-        // Continue background animation into dog approach
         triggerDogApproachRandomOffscreen();
       }
 
@@ -1124,6 +1127,13 @@ if (isMobileOrTablet()) {
       if (aDiff > Math.PI) aDiff -= Math.PI * 2;
       dog.mesh.rotation.y += aDiff * delta * 14.0;
 
+      // Trigger dog bite audio early in zoomed-out view as soon as dog reaches close (distance <= 4.5)
+      if (distToWolf <= 4.5 && !biteTriggered) {
+        stopSound(SOUNDS.dogBark);
+        playSound(SOUNDS.dogBite);
+        biteTriggered = true;
+      }
+
       if (distToWolf > 2.0) {
         dog.mesh.position.addScaledVector(forwardDir, dogSpeed * delta);
         dog.mesh.position.y = 0;
@@ -1138,7 +1148,6 @@ if (isMobileOrTablet()) {
       }
 
     } else if (gameState === 'cutscene_wolf_pov') {
-      // If dog biting audio finished, freeze the visual in place
       if (!povFrozen) {
         cutsceneTimer += delta;
 
