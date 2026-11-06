@@ -65,7 +65,7 @@ if (isMobileOrTablet()) {
     }).join('');
   }
 
-  // --- Audio Sources & Manager (Sheep Scream Removed) ---
+  // --- Audio Sources & Manager (Scream Removed) ---
   const SOUNDS = {
     dogBark: new Audio('assets/sounds/dog_bark.mp3'),
     dogBite: new Audio('assets/sounds/dog_bite.mp3'),
@@ -199,6 +199,9 @@ if (isMobileOrTablet()) {
   let cutsceneTimer = 0;
   let detectedSheep = null;
   let camLookTarget = new THREE.Vector3();
+  let dogChargeStart = new THREE.Vector3();
+  let dogSpeed = 20.0;
+  let povLookDirection = new THREE.Vector3();
 
   let maxFollowed = parseInt(localStorage.getItem('black_sheep_max_followed') || '0', 10);
 
@@ -262,6 +265,33 @@ if (isMobileOrTablet()) {
     (err) => console.warn('Could not load wolf.glb, using fallback box.', err)
   );
 
+  // --- Guard Dog Setup ---
+  const dog = {
+    mesh: new THREE.Group(),
+    visual: null,
+  };
+  dog.visual = createFallbackMesh(0x8B4513);
+  dog.mesh.add(dog.visual);
+  dog.mesh.visible = false;
+  scene.add(dog.mesh);
+
+  gltfLoader.load(
+    'assets/dog.glb',
+    (gltf) => {
+      dog.mesh.remove(dog.visual);
+      dog.visual = gltf.scene;
+      dog.visual.traverse((child) => {
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
+      dog.mesh.add(dog.visual);
+    },
+    undefined,
+    (err) => console.warn('Could not load dog.glb, using fallback box.', err)
+  );
+
   // --- Sheep Setup ---
   const sheepList = [];
 
@@ -282,12 +312,23 @@ if (isMobileOrTablet()) {
       this.followSpeed = 3.8 + Math.random() * 1.0;
       this.fleeSpeed = 19.0;
       this.fleeDirection = new THREE.Vector3();
+      this.rallySpeed = 16.0 + Math.random() * 3.0;
 
       this.fallVelocity = 0;
 
       this.hopPhase = Math.random() * Math.PI * 2;
       this.hopFrequency = 9;
       this.hopHeight = 0.45;
+
+      const row = Math.floor(index / 10) + 1;
+      const col = (index % 10) - 4.5;
+      this.slotBehindOffset = new THREE.Vector2(
+        col * 1.8 + (Math.random() - 0.5) * 0.8,
+        -row * 2.2 - Math.random() * 1.2
+      );
+
+      this.povTargetPos = new THREE.Vector3();
+      this.baseAngleToWolf = 0;
 
       this.dancePhase = Math.random() * Math.PI * 2;
       this.danceSpeed = 12.0 + (this.index % 5) * 2.0;
@@ -504,19 +545,101 @@ if (isMobileOrTablet()) {
       this.mesh.position.y = 0;
     }
 
-    updateBackgroundCheering(delta, time) {
+    rallyBehindDog(delta, dogPos, dogForwardDir) {
+      if (this.state === 'falling') {
+        this.updateFall(delta);
+        return;
+      }
+
+      if (Math.abs(this.mesh.position.x) > FIELD_BOUNDARY || Math.abs(this.mesh.position.z) > FIELD_BOUNDARY) {
+        this.state = 'falling';
+        return;
+      }
+
+      const right = new THREE.Vector3(-dogForwardDir.z, 0, dogForwardDir.x);
+      const back = new THREE.Vector3(-dogForwardDir.x, 0, -dogForwardDir.z);
+
+      const targetPos = new THREE.Vector3()
+        .copy(dogPos)
+        .addScaledVector(right, this.slotBehindOffset.x)
+        .addScaledVector(back, Math.abs(this.slotBehindOffset.y));
+
+      const toTarget = new THREE.Vector3().subVectors(targetPos, this.mesh.position);
+      toTarget.y = 0;
+      const dist = toTarget.length();
+
+      if (dist > 0.6) {
+        toTarget.normalize();
+        this.targetAngle = Math.atan2(toTarget.x, toTarget.z) + Math.PI;
+
+        let diff = (this.targetAngle - this.mesh.rotation.y) % (Math.PI * 2);
+        if (diff < -Math.PI) diff += Math.PI * 2;
+        if (diff > Math.PI) diff -= Math.PI * 2;
+        this.mesh.rotation.y += diff * delta * 12.0;
+
+        const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(
+          new THREE.Vector3(0, 1, 0),
+          this.mesh.rotation.y
+        );
+        this.mesh.position.addScaledVector(forward, this.rallySpeed * delta);
+
+        this.hopPhase += delta * (this.hopFrequency * 1.5);
+        this.mesh.position.y = Math.abs(Math.sin(this.hopPhase)) * (this.hopHeight * 0.9);
+      } else {
+        this.mesh.position.y = THREE.MathUtils.lerp(this.mesh.position.y, 0, delta * 10);
+        const toWolf = new THREE.Vector3().subVectors(player.mesh.position, this.mesh.position);
+        this.targetAngle = Math.atan2(toWolf.x, toWolf.z) + Math.PI;
+        this.mesh.rotation.y = THREE.MathUtils.lerp(this.mesh.rotation.y, this.targetAngle, delta * 6);
+      }
+    }
+
+    setupPovWatchingPosition(wolfPos, sightDir, rightDir) {
+      if (this.state === 'falling') return;
+
+      this.state = 'pov_celebrating';
+
+      const row = Math.floor(this.index / 10);
+      const col = (this.index % 10) - 4.5;
+
+      const depthDistance = 3.6 + row * 0.8;
+      const lateralSpread = col * (0.85 + row * 0.18) + (Math.sin(this.index) * 0.3);
+
+      this.povTargetPos
+        .copy(wolfPos)
+        .addScaledVector(sightDir, depthDistance)
+        .addScaledVector(rightDir, lateralSpread);
+      this.povTargetPos.y = 0;
+
+      this.mesh.position.copy(this.povTargetPos);
+
+      const toWolf = new THREE.Vector3().subVectors(wolfPos, this.mesh.position);
+      this.baseAngleToWolf = Math.atan2(toWolf.x, toWolf.z) + Math.PI;
+      this.mesh.rotation.set(0, this.baseAngleToWolf, 0);
+    }
+
+    updatePovCelebrating(delta, time) {
       if (this.state === 'falling' || !this.mesh.visible) return;
+
       const t = time * this.danceSpeed + this.dancePhase;
-      this.mesh.position.y = Math.abs(Math.sin(t * 0.6)) * this.danceHopPeak;
+
+      const jump = Math.abs(Math.sin(t * 0.6)) * this.danceHopPeak;
+      this.mesh.position.y = jump;
+
+      this.mesh.position.x = this.povTargetPos.x + Math.sin(t * 0.4) * 0.18;
+      this.mesh.position.z = this.povTargetPos.z + Math.cos(t * 0.4) * 0.18;
 
       if (this.danceStyle === 0) {
         this.mesh.rotation.z = Math.sin(t * 0.5) * 0.35;
         this.mesh.rotation.x = -Math.abs(Math.sin(t * 0.7)) * 0.25;
+        this.mesh.rotation.y = this.baseAngleToWolf + Math.sin(t * 0.3) * 0.3;
       } else if (this.danceStyle === 1) {
-        this.mesh.rotation.y += delta * 3.5;
+        this.mesh.rotation.y = this.baseAngleToWolf + t * 2.2;
+        this.mesh.rotation.z = Math.sin(t * 0.8) * 0.2;
+        this.mesh.rotation.x = Math.cos(t * 0.6) * 0.15;
       } else {
         this.mesh.rotation.z = Math.cos(t * 0.7) * 0.28;
         this.mesh.rotation.x = Math.sin(t * 0.9) * 0.32;
+        this.mesh.rotation.y = this.baseAngleToWolf + Math.cos(t * 0.5) * 0.45;
       }
     }
   }
@@ -562,6 +685,7 @@ if (isMobileOrTablet()) {
   const endScoreEl = document.getElementById('end-score');
   const coverBlownBanner = document.getElementById('cover-blown-banner');
   const modalEl = document.getElementById('game-modal');
+  const damageOverlay = document.getElementById('damage-overlay');
 
   function updateHudCounts() {
     const currentFollowers = sheepList.filter((s) => s.state === 'following').length;
@@ -586,7 +710,7 @@ if (isMobileOrTablet()) {
   function checkVictoryCondition() {
     const currentFollowers = sheepList.filter((s) => s.state === 'following').length;
     if (currentFollowers === SHEEP_COUNT && gameState === 'playing') {
-      gameState = 'gameover_loop';
+      gameState = 'victory';
       updateHudCounts();
       saveScoreToLeaderboard(currentPlayerName, currentFollowers);
 
@@ -657,6 +781,7 @@ if (isMobileOrTablet()) {
     }
   };
 
+  // 1. Zoom into the spotter sheep (stays color during close-up, scream audio removed)
   function triggerGameOverCutscene(culpritSheep) {
     if (gameState !== 'playing') return;
     gameState = 'cutscene_zoom_sheep';
@@ -673,14 +798,14 @@ if (isMobileOrTablet()) {
     camLookTarget.copy(player.mesh.position);
   }
 
-  // Brings up the end screen directly while letting animations run underneath
+  // Brings up the end screen directly while letting the background animation continue
   function showGameOverModal() {
-    gameState = 'gameover_loop';
     inGameUiEl.classList.add('hidden');
     coverBlownBanner.className = 'hidden serif-num';
 
     const currentScore = sheepList.filter((s) => s.state === 'following').length;
 
+    // Show current game's score on end screen
     if (endScoreEl) {
       endScoreEl.innerText = currentScore;
     }
@@ -689,20 +814,74 @@ if (isMobileOrTablet()) {
     modalEl.classList.remove('hidden');
   }
 
+  // 2. Dog spawns off-screen and flock rallies
+  function triggerDogApproachRandomOffscreen() {
+    gameState = 'cutscene_dog_approach';
+    cutsceneTimer = 0;
+
+    const spawnAngle = Math.random() * Math.PI * 2;
+    const spawnDistance = 75.0;
+    dogChargeStart.set(
+      player.mesh.position.x + Math.cos(spawnAngle) * spawnDistance,
+      0,
+      player.mesh.position.z + Math.sin(spawnAngle) * spawnDistance
+    );
+
+    dog.mesh.position.copy(dogChargeStart);
+    dog.mesh.visible = true;
+
+    for (let i = 0; i < sheepList.length; i++) {
+      if (sheepList[i] !== detectedSheep) {
+        sheepList[i].state = 'rallying';
+      }
+    }
+
+    playSound(SOUNDS.dogBark);
+  }
+
+  // 3. First-person POV
+  function triggerWolfPOV() {
+    gameState = 'cutscene_wolf_pov';
+    cutsceneTimer = 0;
+
+    player.mesh.visible = false;
+    povLookDirection.subVectors(dog.mesh.position, player.mesh.position).normalize();
+    povLookDirection.y = 0;
+
+    const wolfPos = player.mesh.position;
+    const rightDir = new THREE.Vector3(-povLookDirection.z, 0, povLookDirection.x);
+
+    for (let i = 0; i < sheepList.length; i++) {
+      if (sheepList[i] !== detectedSheep) {
+        sheepList[i].setupPovWatchingPosition(wolfPos, povLookDirection, rightDir);
+      }
+    }
+
+    stopSound(SOUNDS.dogBark);
+    playSound(SOUNDS.dogBite);
+
+    damageOverlay.classList.add('active');
+  }
+
   function resetWorldEntities() {
     stopSound(SOUNDS.dogBark);
     stopSound(SOUNDS.dogBite);
 
+    damageOverlay.classList.remove('active');
     coverBlownBanner.className = 'hidden serif-num';
     countdownOverlay.classList.add('hidden');
     detectedSheep = null;
     cutsceneTimer = 0;
 
+    // Reset black & white filter
     document.getElementById('game-canvas').classList.remove('grayscale-bg');
 
     player.mesh.visible = true;
     player.mesh.position.set(0, 0, 0);
     player.mesh.rotation.y = 0;
+
+    dog.mesh.visible = false;
+    dog.mesh.position.set(0, -10, 0);
 
     for (let i = 0; i < sheepList.length; i++) {
       sheepList[i].resetPosition();
@@ -855,7 +1034,7 @@ if (isMobileOrTablet()) {
       const sPos = detectedSheep.mesh.position;
 
       if (cutsceneTimer < 1.4) {
-        // Close-up standoff
+        // Zooming in close: stays in full color
         const closeCamPos = new THREE.Vector3(
           sPos.x + 1.8,
           sPos.y + 1.5,
@@ -869,7 +1048,7 @@ if (isMobileOrTablet()) {
         camera.lookAt(camLookTarget);
 
       } else if (cutsceneTimer < 2.5) {
-        // Zoom-out: turn black and white
+        // Zoom-out begins: turn black and white
         document.getElementById('game-canvas').classList.add('grayscale-bg');
 
         if (!hasSheepTurned) {
@@ -891,21 +1070,16 @@ if (isMobileOrTablet()) {
         camera.lookAt(camLookTarget);
 
       } else {
+        // Bring up the end screen modal and continue animation into dog approach
         showGameOverModal();
+        triggerDogApproachRandomOffscreen();
       }
 
-    } else if (gameState === 'gameover_loop') {
-      // Background continues animating while end screen is shown
+    } else if (gameState === 'cutscene_dog_approach') {
       cutsceneTimer += delta;
 
       if (detectedSheep) {
         detectedSheep.continueFleeStraight(delta);
-      }
-
-      for (let i = 0; i < sheepList.length; i++) {
-        if (sheepList[i] !== detectedSheep) {
-          sheepList[i].updateBackgroundCheering(delta, cutsceneTimer);
-        }
       }
 
       const normalCamPos = new THREE.Vector3(
@@ -913,8 +1087,78 @@ if (isMobileOrTablet()) {
         player.mesh.position.y + CAM_OFFSET_Y,
         player.mesh.position.z + CAM_OFFSET_Z
       );
-      camera.position.lerp(normalCamPos, delta * 3.0);
+      camera.position.lerp(normalCamPos, delta * 4);
       camera.lookAt(player.mesh.position.x, player.mesh.position.y + CAM_LOOK_OFFSET_Y, player.mesh.position.z);
+
+      const dogPos = dog.mesh.position;
+      const wolfPos = player.mesh.position;
+
+      const toWolf = new THREE.Vector3().subVectors(wolfPos, dogPos);
+      const distToWolf = toWolf.length();
+
+      const forwardDir = toWolf.clone().normalize();
+
+      const moveAngle = Math.atan2(forwardDir.x, forwardDir.z) + Math.PI;
+      let aDiff = (moveAngle - dog.mesh.rotation.y) % (Math.PI * 2);
+      if (aDiff < -Math.PI) aDiff += Math.PI * 2;
+      if (aDiff > Math.PI) aDiff -= Math.PI * 2;
+      dog.mesh.rotation.y += aDiff * delta * 14.0;
+
+      if (distToWolf > 2.0) {
+        dog.mesh.position.addScaledVector(forwardDir, dogSpeed * delta);
+        dog.mesh.position.y = 0;
+      } else {
+        triggerWolfPOV();
+      }
+
+      for (let i = 0; i < sheepList.length; i++) {
+        if (sheepList[i] !== detectedSheep) {
+          sheepList[i].rallyBehindDog(delta, dogPos, forwardDir);
+        }
+      }
+
+    } else if (gameState === 'cutscene_wolf_pov') {
+      cutsceneTimer += delta;
+
+      if (detectedSheep) {
+        detectedSheep.continueFleeStraight(delta);
+      }
+
+      const wolfPos = player.mesh.position;
+      camera.position.set(wolfPos.x, 1.15, wolfPos.z);
+
+      const baseDogDist = 1.7;
+      const biteCycle = Math.sin(cutsceneTimer * 16.0);
+      const lungeOffset = Math.max(0, biteCycle) * 0.45;
+      const currentDist = baseDogDist - lungeOffset;
+
+      dog.mesh.position.set(
+        wolfPos.x + povLookDirection.x * currentDist,
+        0,
+        wolfPos.z + povLookDirection.z * currentDist
+      );
+
+      dog.mesh.rotation.y = Math.atan2(-povLookDirection.x, -povLookDirection.z) + Math.PI;
+      dog.mesh.rotation.z = Math.sin(cutsceneTimer * 24.0) * 0.18;
+      dog.mesh.rotation.x = -Math.abs(Math.sin(cutsceneTimer * 16.0)) * 0.22;
+
+      const recoilPitch = -Math.max(0, biteCycle) * 0.08;
+      const recoilYaw = Math.sin(cutsceneTimer * 18.0) * 0.05;
+
+      const dogHeadTarget = new THREE.Vector3(
+        dog.mesh.position.x,
+        0.85 + recoilPitch,
+        dog.mesh.position.z
+      );
+      camera.lookAt(dogHeadTarget);
+      camera.rotation.z = recoilYaw;
+
+      for (let i = 0; i < sheepList.length; i++) {
+        if (sheepList[i] !== detectedSheep) {
+          sheepList[i].updatePovCelebrating(delta, cutsceneTimer);
+        }
+      }
+      // Animation loops indefinitely in background until Again / Title Screen is clicked
     }
 
     renderer.render(scene, camera);
