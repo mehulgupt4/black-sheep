@@ -106,15 +106,18 @@ body, html {
   gap: 16px;
 }
 
-/* Video Title Animation Card */
+/* Animated Video Title Card */
 #title-video {
   width: 480px;
   max-width: 85vw;
+  min-height: 140px;
   height: auto;
   display: block;
   background: transparent;
   pointer-events: none;
   outline: none;
+  object-fit: contain;
+  z-index: 85;
 }
 
 .title-buttons {
