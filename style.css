@@ -65,7 +65,7 @@ body, html {
   display: none !important;
 }
 
-/* Persistent Top-Right Leaderboard */
+/* Persistent Top-Right Leaderboard (Rank numbers removed) */
 #corner-leaderboard {
   position: absolute;
   top: 24px;
@@ -74,7 +74,7 @@ body, html {
   pointer-events: none;
   user-select: none;
   background: transparent;
-  width: 190px;
+  width: 180px;
 }
 
 #corner-leaderboard-list {
@@ -98,16 +98,9 @@ body, html {
   opacity: 1;
 }
 
-.corner-leaderboard-rank {
-  opacity: 0.45;
-  width: 16px;
-  text-align: left;
-}
-
 .corner-leaderboard-name {
   flex: 1;
   text-align: left;
-  margin-left: 6px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -116,6 +109,7 @@ body, html {
 .corner-leaderboard-val {
   font-weight: 700;
   color: #ffffff;
+  margin-left: 12px;
 }
 
 /* Title Screen Overlay in the Sky */
