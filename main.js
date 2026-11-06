@@ -181,9 +181,9 @@ if (isMobileOrTablet()) {
   overheadSpotlight.shadow.bias = -0.0005;
   scene.add(overheadSpotlight);
 
-  // --- Game Rules & Radii ---
+  // --- Game Rules & Radii (Smaller Danger Radius) ---
   const FOLLOW_RADIUS = 13.0;
-  const BLOWN_RADIUS = 2.4;
+  const BLOWN_RADIUS = 1.5; // Made smaller from 2.4
   const SHEEP_COUNT = 100;
   const SHEEP_SEPARATION_RADIUS = 2.4;
 
@@ -395,15 +395,14 @@ if (isMobileOrTablet()) {
       }
     }
 
-    // Dynamic speed based on currently followed flock count
     getDynamicFollowSpeed(distToWolf, currentFollowedCount) {
       if (distToWolf <= BLOWN_RADIUS) {
         if (currentFollowedCount <= 10) {
-          return 1.8 + Math.random() * 0.6; // Slow at beginning
+          return 1.8 + Math.random() * 0.6;
         } else if (currentFollowedCount <= 20) {
-          return 3.2 + Math.random() * 0.6; // Moderate speed
+          return 3.2 + Math.random() * 0.6;
         } else {
-          return 4.6 + Math.random() * 0.6; // Difficult & fast
+          return 4.6 + Math.random() * 0.6;
         }
       }
       return this.followSpeed;
@@ -686,6 +685,7 @@ if (isMobileOrTablet()) {
   const maxFollowedCountEl = document.getElementById('max-followed-count');
   const endScoreEl = document.getElementById('end-score');
   const coverBlownBanner = document.getElementById('cover-blown-banner');
+  const cutsceneAgainBtn = document.getElementById('cutscene-again-btn');
   const modalEl = document.getElementById('game-modal');
   const damageOverlay = document.getElementById('damage-overlay');
 
@@ -734,6 +734,7 @@ if (isMobileOrTablet()) {
     countdownOverlay.classList.remove('hidden');
 
     inGameUiEl.classList.remove('hidden');
+    cutsceneAgainBtn.classList.add('hidden');
     updateHudCounts();
   }
 
@@ -782,6 +783,7 @@ if (isMobileOrTablet()) {
     }
   };
 
+  // 1. Zoom into the sheep that caught you & snap B&W screen immediately
   function triggerGameOverCutscene(culpritSheep) {
     if (gameState !== 'playing') return;
     gameState = 'cutscene_zoom_sheep';
@@ -790,6 +792,12 @@ if (isMobileOrTablet()) {
     cutsceneTimer = 0;
 
     playSound(SOUNDS.sheepScream);
+
+    // Turn black & white the moment cover is blown
+    document.getElementById('game-canvas').classList.add('grayscale-bg');
+
+    // Give player option to restart immediately during death sequence
+    cutsceneAgainBtn.classList.remove('hidden');
 
     coverBlownBanner.className = 'serif-num flash-center';
 
@@ -800,6 +808,7 @@ if (isMobileOrTablet()) {
     camLookTarget.copy(player.mesh.position);
   }
 
+  // 2. Dog spawns off-screen and flock rallies
   function triggerDogApproachRandomOffscreen() {
     gameState = 'cutscene_dog_approach';
     cutsceneTimer = 0;
@@ -824,6 +833,7 @@ if (isMobileOrTablet()) {
     playSound(SOUNDS.dogBark);
   }
 
+  // 3. First-person POV
   function triggerWolfPOV() {
     gameState = 'cutscene_wolf_pov';
     cutsceneTimer = 0;
@@ -855,8 +865,7 @@ if (isMobileOrTablet()) {
     stopSound(SOUNDS.dogBite);
     damageOverlay.classList.remove('active');
     coverBlownBanner.className = 'hidden serif-num';
-
-    document.getElementById('game-canvas').classList.add('grayscale-bg');
+    cutsceneAgainBtn.classList.add('hidden');
 
     updateHudCounts();
     saveScoreToLeaderboard(currentPlayerName, maxFollowed);
@@ -871,6 +880,7 @@ if (isMobileOrTablet()) {
 
     damageOverlay.classList.remove('active');
     coverBlownBanner.className = 'hidden serif-num';
+    cutsceneAgainBtn.classList.add('hidden');
     countdownOverlay.classList.add('hidden');
     detectedSheep = null;
     cutsceneTimer = 0;
