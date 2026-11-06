@@ -65,11 +65,19 @@ if (isMobileOrTablet()) {
     }).join('');
   }
 
-  // --- Audio Sources & Manager (Scream Removed) ---
+  // --- Audio Sources & Manager ---
   const SOUNDS = {
     dogBark: new Audio('assets/sounds/dog_bark.mp3'),
     dogBite: new Audio('assets/sounds/dog_bite.mp3'),
   };
+
+  let povFrozen = false;
+
+  // Freeze the background animation once dog bite audio completes
+  SOUNDS.dogBite.addEventListener('ended', () => {
+    povFrozen = true;
+    damageOverlay.classList.remove('active');
+  });
 
   function playSound(audio) {
     if (!audio) return;
@@ -720,6 +728,7 @@ if (isMobileOrTablet()) {
 
       document.getElementById('game-canvas').classList.add('grayscale-bg');
       modalEl.classList.remove('hidden');
+      modalEl.classList.add('visible');
     }
   }
 
@@ -781,13 +790,14 @@ if (isMobileOrTablet()) {
     }
   };
 
-  // 1. Zoom into the spotter sheep (stays color during close-up, scream audio removed)
+  // 1. Zoom into the spotter sheep (stays color during close-up)
   function triggerGameOverCutscene(culpritSheep) {
     if (gameState !== 'playing') return;
     gameState = 'cutscene_zoom_sheep';
     detectedSheep = culpritSheep;
     detectedSheep.faceWolf();
     cutsceneTimer = 0;
+    povFrozen = false;
 
     coverBlownBanner.className = 'serif-num flash-center';
 
@@ -798,7 +808,7 @@ if (isMobileOrTablet()) {
     camLookTarget.copy(player.mesh.position);
   }
 
-  // Brings up the end screen directly while letting the background animation continue
+  // Shows the end screen modal synchronized with the grayscale change
   function showGameOverModal() {
     inGameUiEl.classList.add('hidden');
     coverBlownBanner.className = 'hidden serif-num';
@@ -811,7 +821,12 @@ if (isMobileOrTablet()) {
     }
 
     saveScoreToLeaderboard(currentPlayerName, currentScore);
+
     modalEl.classList.remove('hidden');
+    // Trigger CSS opacity transition
+    requestAnimationFrame(() => {
+      modalEl.classList.add('visible');
+    });
   }
 
   // 2. Dog spawns off-screen and flock rallies
@@ -872,6 +887,7 @@ if (isMobileOrTablet()) {
     countdownOverlay.classList.add('hidden');
     detectedSheep = null;
     cutsceneTimer = 0;
+    povFrozen = false;
 
     // Reset black & white filter
     document.getElementById('game-canvas').classList.remove('grayscale-bg');
@@ -890,6 +906,7 @@ if (isMobileOrTablet()) {
   }
 
   window.restartGame = function () {
+    modalEl.classList.remove('visible');
     modalEl.classList.add('hidden');
     resetWorldEntities();
 
@@ -900,6 +917,7 @@ if (isMobileOrTablet()) {
   };
 
   window.goToTitleScreen = function () {
+    modalEl.classList.remove('visible');
     modalEl.classList.add('hidden');
     inGameUiEl.classList.add('hidden');
     resetWorldEntities();
@@ -1034,7 +1052,7 @@ if (isMobileOrTablet()) {
       const sPos = detectedSheep.mesh.position;
 
       if (cutsceneTimer < 1.4) {
-        // Zooming in close: stays in full color
+        // Zooming in close: stays in color
         const closeCamPos = new THREE.Vector3(
           sPos.x + 1.8,
           sPos.y + 1.5,
@@ -1048,8 +1066,11 @@ if (isMobileOrTablet()) {
         camera.lookAt(camLookTarget);
 
       } else if (cutsceneTimer < 2.5) {
-        // Zoom-out begins: turn black and white
-        document.getElementById('game-canvas').classList.add('grayscale-bg');
+        // Zoom-out begins: canvas turns black & white AND end screen appears
+        if (!document.getElementById('game-canvas').classList.contains('grayscale-bg')) {
+          document.getElementById('game-canvas').classList.add('grayscale-bg');
+          showGameOverModal();
+        }
 
         if (!hasSheepTurned) {
           detectedSheep.initFleeStraight();
@@ -1070,8 +1091,7 @@ if (isMobileOrTablet()) {
         camera.lookAt(camLookTarget);
 
       } else {
-        // Bring up the end screen modal and continue animation into dog approach
-        showGameOverModal();
+        // Continue background animation into dog approach
         triggerDogApproachRandomOffscreen();
       }
 
@@ -1118,47 +1138,49 @@ if (isMobileOrTablet()) {
       }
 
     } else if (gameState === 'cutscene_wolf_pov') {
-      cutsceneTimer += delta;
+      // If dog biting audio finished, freeze the visual in place
+      if (!povFrozen) {
+        cutsceneTimer += delta;
 
-      if (detectedSheep) {
-        detectedSheep.continueFleeStraight(delta);
-      }
+        if (detectedSheep) {
+          detectedSheep.continueFleeStraight(delta);
+        }
 
-      const wolfPos = player.mesh.position;
-      camera.position.set(wolfPos.x, 1.15, wolfPos.z);
+        const wolfPos = player.mesh.position;
+        camera.position.set(wolfPos.x, 1.15, wolfPos.z);
 
-      const baseDogDist = 1.7;
-      const biteCycle = Math.sin(cutsceneTimer * 16.0);
-      const lungeOffset = Math.max(0, biteCycle) * 0.45;
-      const currentDist = baseDogDist - lungeOffset;
+        const baseDogDist = 1.7;
+        const biteCycle = Math.sin(cutsceneTimer * 16.0);
+        const lungeOffset = Math.max(0, biteCycle) * 0.45;
+        const currentDist = baseDogDist - lungeOffset;
 
-      dog.mesh.position.set(
-        wolfPos.x + povLookDirection.x * currentDist,
-        0,
-        wolfPos.z + povLookDirection.z * currentDist
-      );
+        dog.mesh.position.set(
+          wolfPos.x + povLookDirection.x * currentDist,
+          0,
+          wolfPos.z + povLookDirection.z * currentDist
+        );
 
-      dog.mesh.rotation.y = Math.atan2(-povLookDirection.x, -povLookDirection.z) + Math.PI;
-      dog.mesh.rotation.z = Math.sin(cutsceneTimer * 24.0) * 0.18;
-      dog.mesh.rotation.x = -Math.abs(Math.sin(cutsceneTimer * 16.0)) * 0.22;
+        dog.mesh.rotation.y = Math.atan2(-povLookDirection.x, -povLookDirection.z) + Math.PI;
+        dog.mesh.rotation.z = Math.sin(cutsceneTimer * 24.0) * 0.18;
+        dog.mesh.rotation.x = -Math.abs(Math.sin(cutsceneTimer * 16.0)) * 0.22;
 
-      const recoilPitch = -Math.max(0, biteCycle) * 0.08;
-      const recoilYaw = Math.sin(cutsceneTimer * 18.0) * 0.05;
+        const recoilPitch = -Math.max(0, biteCycle) * 0.08;
+        const recoilYaw = Math.sin(cutsceneTimer * 18.0) * 0.05;
 
-      const dogHeadTarget = new THREE.Vector3(
-        dog.mesh.position.x,
-        0.85 + recoilPitch,
-        dog.mesh.position.z
-      );
-      camera.lookAt(dogHeadTarget);
-      camera.rotation.z = recoilYaw;
+        const dogHeadTarget = new THREE.Vector3(
+          dog.mesh.position.x,
+          0.85 + recoilPitch,
+          dog.mesh.position.z
+        );
+        camera.lookAt(dogHeadTarget);
+        camera.rotation.z = recoilYaw;
 
-      for (let i = 0; i < sheepList.length; i++) {
-        if (sheepList[i] !== detectedSheep) {
-          sheepList[i].updatePovCelebrating(delta, cutsceneTimer);
+        for (let i = 0; i < sheepList.length; i++) {
+          if (sheepList[i] !== detectedSheep) {
+            sheepList[i].updatePovCelebrating(delta, cutsceneTimer);
+          }
         }
       }
-      // Animation loops indefinitely in background until Again / Title Screen is clicked
     }
 
     renderer.render(scene, camera);
