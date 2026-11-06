@@ -65,6 +65,64 @@ if (isMobileOrTablet()) {
     }).join('');
   }
 
+  // --- Title Video Animation & Random Freeze Loop ---
+  const titleVideo = document.getElementById('title-video');
+  let titleLoopTimeout = null;
+
+  function initTitleVideo() {
+    if (!titleVideo) return;
+    titleVideo.muted = false;
+    titleVideo.volume = 1.0;
+
+    // Start video playback
+    titleVideo.play().catch(() => {
+      // If autoplay with sound is blocked, start muted and unmute on first page interaction
+      titleVideo.muted = true;
+      titleVideo.play().catch(() => {});
+      const enableAudioOnUserGesture = () => {
+        titleVideo.muted = false;
+        titleVideo.volume = 1.0;
+        window.removeEventListener('pointerdown', enableAudioOnUserGesture);
+        window.removeEventListener('keydown', enableAudioOnUserGesture);
+      };
+      window.addEventListener('pointerdown', enableAudioOnUserGesture);
+      window.addEventListener('keydown', enableAudioOnUserGesture);
+    });
+
+    // When the animation completes: freeze on last frame, then replay randomly in 2 to 5 seconds
+    titleVideo.addEventListener('ended', () => {
+      if (titleLoopTimeout) clearTimeout(titleLoopTimeout);
+
+      // Random delay between 2000ms and 5000ms
+      const delay = 2000 + Math.random() * 3000;
+      titleLoopTimeout = setTimeout(() => {
+        if (gameState === 'start_screen') {
+          titleVideo.currentTime = 0;
+          titleVideo.play().catch(() => {});
+        }
+      }, delay);
+    });
+  }
+  initTitleVideo();
+
+  function stopTitleVideo() {
+    if (titleLoopTimeout) {
+      clearTimeout(titleLoopTimeout);
+      titleLoopTimeout = null;
+    }
+    if (titleVideo) {
+      titleVideo.pause();
+    }
+  }
+
+  function resumeTitleVideo() {
+    if (!titleVideo) return;
+    titleVideo.currentTime = 0;
+    titleVideo.muted = false;
+    titleVideo.volume = 1.0;
+    titleVideo.play().catch(() => {});
+  }
+
   // --- Audio Sources & Manager ---
   const SOUNDS = {
     dogBark: new Audio('assets/sounds/dog_bark.mp3'),
@@ -88,7 +146,7 @@ if (isMobileOrTablet()) {
     audio.play().catch(() => {});
   }
 
-  // Smooth fade-in helper
+  // Linear fade-in helper
   function fadeInSound(audio, duration = 1.5, targetVolume = 1.0) {
     if (!audio) return;
     if (biteFadeInterval) {
@@ -730,35 +788,6 @@ if (isMobileOrTablet()) {
   const modalEl = document.getElementById('game-modal');
   const damageOverlay = document.getElementById('damage-overlay');
 
-  // --- Title Video Loop Controller ---
-  const titleVideo = document.getElementById('title-video');
-  let titleLoopTimeout = null;
-
-  function initTitleVideoLoop() {
-    if (!titleVideo) return;
-
-    if (titleLoopTimeout) {
-      clearTimeout(titleLoopTimeout);
-      titleLoopTimeout = null;
-    }
-
-    // Freeze on last frame, replay randomly between 2 and 5 seconds
-    titleVideo.onended = () => {
-      const delayMs = 2000 + Math.random() * 3000;
-      titleLoopTimeout = setTimeout(() => {
-        if (gameState === 'start_screen') {
-          titleVideo.currentTime = 0;
-          titleVideo.play().catch(() => {});
-        }
-      }, delayMs);
-    };
-
-    titleVideo.currentTime = 0;
-    titleVideo.play().catch(() => {});
-  }
-
-  initTitleVideoLoop();
-
   function updateHudCounts() {
     const currentFollowers = sheepList.filter((s) => s.state === 'following').length;
 
@@ -832,13 +861,7 @@ if (isMobileOrTablet()) {
     localStorage.setItem('black_sheep_player_name', currentPlayerName);
     closeNameModal();
 
-    if (titleLoopTimeout) {
-      clearTimeout(titleLoopTimeout);
-      titleLoopTimeout = null;
-    }
-    if (titleVideo) {
-      titleVideo.pause();
-    }
+    stopTitleVideo();
 
     titleScreenEl.classList.add('fade-out');
     howtoModalEl.classList.add('hidden');
@@ -1002,7 +1025,7 @@ if (isMobileOrTablet()) {
     titleScreenEl.classList.remove('fade-out');
     gameState = 'start_screen';
 
-    initTitleVideoLoop();
+    resumeTitleVideo();
   };
 
   // --- Input Handling ---
@@ -1197,7 +1220,7 @@ if (isMobileOrTablet()) {
       if (aDiff > Math.PI) aDiff -= Math.PI * 2;
       dog.mesh.rotation.y += aDiff * delta * 14.0;
 
-      // Fade in biting sound ~2 seconds before arrival (42 units)
+      // Smooth linear fade-in starting ~2 seconds before arrival (42 units)
       if (distToWolf <= 42.0 && !biteAudioStarted) {
         fadeInSound(SOUNDS.dogBite, 1.5, 1.0);
         biteAudioStarted = true;
