@@ -74,9 +74,7 @@ if (isMobileOrTablet()) {
     titleVideo.muted = false;
     titleVideo.volume = 1.0;
 
-    // Start video playback
     titleVideo.play().catch(() => {
-      // If autoplay with sound is blocked, start muted and unmute on first page interaction
       titleVideo.muted = true;
       titleVideo.play().catch(() => {});
       const enableAudioOnUserGesture = () => {
@@ -89,11 +87,9 @@ if (isMobileOrTablet()) {
       window.addEventListener('keydown', enableAudioOnUserGesture);
     });
 
-    // When the animation completes: freeze on last frame, then replay randomly in 2 to 5 seconds
     titleVideo.addEventListener('ended', () => {
       if (titleLoopTimeout) clearTimeout(titleLoopTimeout);
 
-      // Random delay between 2000ms and 5000ms
       const delay = 2000 + Math.random() * 3000;
       titleLoopTimeout = setTimeout(() => {
         if (gameState === 'start_screen') {
@@ -133,7 +129,6 @@ if (isMobileOrTablet()) {
   let biteAudioStarted = false;
   let biteFadeInterval = null;
 
-  // Freeze the background animation once dog bite audio completes
   SOUNDS.dogBite.addEventListener('ended', () => {
     povFrozen = true;
     damageOverlay.classList.remove('active');
@@ -146,7 +141,6 @@ if (isMobileOrTablet()) {
     audio.play().catch(() => {});
   }
 
-  // Linear fade-in helper
   function fadeInSound(audio, duration = 1.5, targetVolume = 1.0) {
     if (!audio) return;
     if (biteFadeInterval) {
@@ -1220,7 +1214,6 @@ if (isMobileOrTablet()) {
       if (aDiff > Math.PI) aDiff -= Math.PI * 2;
       dog.mesh.rotation.y += aDiff * delta * 14.0;
 
-      // Smooth linear fade-in starting ~2 seconds before arrival (42 units)
       if (distToWolf <= 42.0 && !biteAudioStarted) {
         fadeInSound(SOUNDS.dogBite, 1.5, 1.0);
         biteAudioStarted = true;
