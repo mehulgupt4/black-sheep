@@ -23,7 +23,9 @@
   <div id="title-screen">
     <div class="sky-title-box">
       <!-- Animated Video Title Card -->
-      <video id="title-video" src="assets/title.mp4" playsinline preload="auto"></video>
+      <video id="title-video" playsinline preload="auto">
+        <source src="assets/title.mov" type="video/quicktime">
+      </video>
       <div class="title-buttons">
         <button id="start-btn" onclick="openNameModal()">Start</button>
         <button id="how-to-btn" onclick="toggleHowTo(true)">How To</button>
