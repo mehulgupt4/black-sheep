@@ -425,15 +425,23 @@ body, html {
   100% { transform: scale(1.04); filter: brightness(1.4); }
 }
 
-/* End Game Screen Modal */
+/* End Game Screen Modal: Smooth fade synchronized with black & white transition */
 #game-modal {
   position: absolute;
   inset: 0;
-  background: rgba(2, 3, 8, 0.75);
+  background: rgba(2, 3, 8, 0.65);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.8s ease;
+}
+
+#game-modal.visible {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 #game-modal.hidden {
