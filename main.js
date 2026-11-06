@@ -74,8 +74,8 @@ if (isMobileOrTablet()) {
     audio.play().catch(() => {});
   }
 
-  // Polyphonic overlapping playback with custom start offset (trimmed 0.5s from start)
-  function playOverlappingSound(audio, startTime = 0.5, volume = 0.85) {
+  // Polyphonic overlapping playback with 200ms initial trim
+  function playOverlappingSound(audio, startTime = 0.2, volume = 0.85) {
     if (!audio || isMuted) return;
 
     const soundInstance = audio.cloneNode();
@@ -171,11 +171,11 @@ if (isMobileOrTablet()) {
       return;
     }
 
-    container.innerHTML = board.map((entry, idx) => {
+    // Rank number removed: displays Name and Score only
+    container.innerHTML = board.map((entry) => {
       const isCurrent = entry.name.toLowerCase() === currentPlayerName.toLowerCase();
       return `
         <div class="corner-leaderboard-row ${isCurrent ? 'current-player' : ''}">
-          <span class="corner-leaderboard-rank serif-num">${idx + 1}</span>
           <span class="corner-leaderboard-name serif-num">${entry.name}</span>
           <span class="corner-leaderboard-val serif-num">${entry.score}</span>
         </div>
@@ -584,7 +584,7 @@ if (isMobileOrTablet()) {
         if (this.state !== 'following') {
           if (distToWolf <= FOLLOW_RADIUS) {
             this.state = 'following';
-            // Trimmed by 0.5s from start, polyphonic overlapping for multiple sheeps
+            // Trimmed by 200ms (0.2s) from start
             playOverlappingSound(SOUNDS.sheepFollow, 0.2, 0.85);
             updateHudCounts();
             checkVictoryCondition();
