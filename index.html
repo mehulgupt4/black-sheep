@@ -22,8 +22,8 @@
   <!-- Title Screen in the Sky -->
   <div id="title-screen">
     <div class="sky-title-box">
-      <!-- Animated Video Title Card -->
-      <video id="title-video" src="assets/title.mp4" playsinline preload="auto"></video>
+      <!-- Animated Video Title Card (starts muted for autoplay policy, unmuted on first interaction) -->
+      <video id="title-video" src="assets/title.mp4" autoplay muted playsinline preload="auto"></video>
       <div class="title-buttons">
         <button id="start-btn" onclick="openNameModal()">Start</button>
         <button id="how-to-btn" onclick="toggleHowTo(true)">How To</button>
