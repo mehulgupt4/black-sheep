@@ -104,17 +104,25 @@ body, html {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 18px;
+  gap: 16px;
 }
 
-.sky-title {
-  font-family: 'Cinzel', serif;
-  font-size: 2.6rem;
-  font-weight: 700;
-  letter-spacing: 0.28em;
-  margin-right: -0.28em;
-  color: #f8fafc;
-  text-shadow: 0 0 16px rgba(255, 255, 255, 0.35), 0 0 40px rgba(160, 200, 255, 0.15);
+/* Video Title Card */
+.title-video-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 520px;
+  width: 80vw;
+  pointer-events: none;
+}
+
+#title-video {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.25));
 }
 
 .title-buttons {
@@ -425,7 +433,7 @@ body, html {
   100% { transform: scale(1.04); filter: brightness(1.4); }
 }
 
-/* End Game Screen Modal: Smooth fade synchronized with black & white transition */
+/* End Game Screen Modal */
 #game-modal {
   position: absolute;
   inset: 0;
