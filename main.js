@@ -73,6 +73,7 @@ if (isMobileOrTablet()) {
 
   let povFrozen = false;
   let biteAudioStarted = false;
+  let biteFadeInterval = null;
 
   // Freeze the background animation once dog bite audio completes
   SOUNDS.dogBite.addEventListener('ended', () => {
@@ -83,13 +84,46 @@ if (isMobileOrTablet()) {
   function playSound(audio) {
     if (!audio) return;
     audio.currentTime = 0;
+    audio.volume = 1.0;
     audio.play().catch(() => {});
+  }
+
+  // Smooth fade-in helper
+  function fadeInSound(audio, duration = 1.5, targetVolume = 1.0) {
+    if (!audio) return;
+    if (biteFadeInterval) {
+      clearInterval(biteFadeInterval);
+      biteFadeInterval = null;
+    }
+
+    audio.currentTime = 0;
+    audio.volume = 0.0;
+    audio.play().catch(() => {});
+
+    const stepMs = 50;
+    const totalSteps = (duration * 1000) / stepMs;
+    const volumeStep = targetVolume / totalSteps;
+
+    biteFadeInterval = setInterval(() => {
+      if (audio.volume + volumeStep >= targetVolume) {
+        audio.volume = targetVolume;
+        clearInterval(biteFadeInterval);
+        biteFadeInterval = null;
+      } else {
+        audio.volume = Math.min(targetVolume, audio.volume + volumeStep);
+      }
+    }, stepMs);
   }
 
   function stopSound(audio) {
     if (!audio) return;
+    if (audio === SOUNDS.dogBite && biteFadeInterval) {
+      clearInterval(biteFadeInterval);
+      biteFadeInterval = null;
+    }
     audio.pause();
     audio.currentTime = 0;
+    audio.volume = 1.0;
   }
 
   // --- Scene, Camera, Renderer ---
@@ -791,7 +825,7 @@ if (isMobileOrTablet()) {
     }
   };
 
-  // 1. Zoom into the spotter sheep (stays color during close-up)
+  // 1. Zoom into the spotter sheep
   function triggerGameOverCutscene(culpritSheep) {
     if (gameState !== 'playing') return;
     gameState = 'cutscene_zoom_sheep';
@@ -817,7 +851,6 @@ if (isMobileOrTablet()) {
 
     const currentScore = sheepList.filter((s) => s.state === 'following').length;
 
-    // Show current game's score on end screen
     if (endScoreEl) {
       endScoreEl.innerText = currentScore;
     }
@@ -874,9 +907,9 @@ if (isMobileOrTablet()) {
       }
     }
 
-    // Ensure biting audio continues playing across the POV switch
+    // Safety fallback if not already started during the approach
     if (!biteAudioStarted) {
-      playSound(SOUNDS.dogBite);
+      fadeInSound(SOUNDS.dogBite, 1.2, 1.0);
       biteAudioStarted = true;
     }
 
@@ -1070,7 +1103,6 @@ if (isMobileOrTablet()) {
         camera.lookAt(camLookTarget);
 
       } else if (cutsceneTimer < 2.5) {
-        // Zoom-out begins: canvas turns black & white AND end screen appears
         if (!document.getElementById('game-canvas').classList.contains('grayscale-bg')) {
           document.getElementById('game-canvas').classList.add('grayscale-bg');
           showGameOverModal();
@@ -1127,9 +1159,9 @@ if (isMobileOrTablet()) {
       if (aDiff > Math.PI) aDiff -= Math.PI * 2;
       dog.mesh.rotation.y += aDiff * delta * 14.0;
 
-      // Start biting sound 2 seconds before reaching the wolf (2.0 + 20 * 2.0 = 42.0)
+      // Fade in biting sound ~2 seconds before arrival (42 units)
       if (distToWolf <= 42.0 && !biteAudioStarted) {
-        playSound(SOUNDS.dogBite);
+        fadeInSound(SOUNDS.dogBite, 1.5, 1.0);
         biteAudioStarted = true;
         damageOverlay.classList.add('active');
       }
@@ -1148,7 +1180,6 @@ if (isMobileOrTablet()) {
       }
 
     } else if (gameState === 'cutscene_wolf_pov') {
-      // Freeze transforms once the biting audio completes
       if (!povFrozen) {
         cutsceneTimer += delta;
 
