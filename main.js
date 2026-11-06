@@ -585,7 +585,7 @@ if (isMobileOrTablet()) {
           if (distToWolf <= FOLLOW_RADIUS) {
             this.state = 'following';
             // Trimmed by 0.5s from start, polyphonic overlapping for multiple sheeps
-            playOverlappingSound(SOUNDS.sheepFollow, 0.5, 0.85);
+            playOverlappingSound(SOUNDS.sheepFollow, 0.2, 0.85);
             updateHudCounts();
             checkVictoryCondition();
           }
